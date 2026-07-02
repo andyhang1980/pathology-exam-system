@@ -32,6 +32,8 @@
         .btn-success:hover { background: #276749; }
         .btn-danger { background: #e53e3e; color: white; }
         .btn-danger:hover { background: #c53030; }
+        .btn-warning { background: #dd6b20; color: white; }
+        .btn-warning:hover { background: #c05621; }
         .btn-outline { background: white; color: #4a5568; border: 1px solid #e2e8f0; }
         .btn-outline:hover { background: #f7fafc; }
         .tab-content { display: none; }
@@ -220,6 +222,7 @@
                 <div class="flex gap-2 items-center">
                     <span id="q-selected-count" class="text-sm text-gray-500" style="display:none">已选 <b>0</b> 项</span>
                     <button id="q-batch-delete-btn" class="btn btn-danger text-sm" style="display:none" onclick="batchDeleteQuestions()"><i class="fas fa-trash mr-1"></i>批量删除</button>
+                    <button class="btn btn-warning text-sm" onclick="findDuplicates()"><i class="fas fa-copy mr-1"></i>查重</button>
                     <button class="btn btn-primary" onclick="showAddQuestion()"><i class="fas fa-plus"></i> 添加试题</button>
                 </div>
             </div>
@@ -264,6 +267,21 @@
             </div>
             <div class="bg-white rounded-xl border" id="questions-list">
                 <p class="text-gray-400 text-center py-8">加载中...</p>
+            </div>
+
+            <!-- Dedup Panel -->
+            <div id="dedup-panel" class="mt-4" style="display:none">
+                <div class="bg-white rounded-xl border p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-copy text-orange-500 mr-2"></i>重复试题检测</h3>
+                        <button class="text-gray-400 hover:text-gray-600" onclick="document.getElementById('dedup-panel').style.display='none'"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="dedup-summary" class="mb-4 text-sm text-gray-600"></div>
+                    <div id="dedup-actions" class="mb-4 flex gap-2" style="display:none">
+                        <button class="btn btn-danger text-sm" onclick="dedupMergeAll()"><i class="fas fa-magic mr-1"></i>一键去重（保留最早的）</button>
+                    </div>
+                    <div id="dedup-groups" class="space-y-4"></div>
+                </div>
             </div>
         </div>
 
@@ -1607,6 +1625,129 @@ Word 中插入的图片会被自动提取为题干中的图片引用。
                 loadQuestions();
             } else {
                 alert('删除失败: ' + (data.error || '未知错误'));
+            }
+        }
+
+        // ============= Dedup Functions =============
+        async function findDuplicates() {
+            const panel = document.getElementById('dedup-panel');
+            const summary = document.getElementById('dedup-summary');
+            const groups = document.getElementById('dedup-groups');
+            const actions = document.getElementById('dedup-actions');
+
+            panel.style.display = 'block';
+            summary.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>正在扫描题库，计算内容指纹...';
+            groups.innerHTML = '';
+            actions.style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/admin/questions/find-duplicates', { method: 'POST' });
+                const data = await resp.json();
+
+                if (!data.success) {
+                    summary.innerHTML = '<span class="text-red-500">扫描失败: ' + (data.error || '未知错误') + '</span>';
+                    return;
+                }
+
+                if (data.duplicate_groups.length === 0) {
+                    summary.innerHTML = `<div class="flex items-center gap-2 text-green-600"><i class="fas fa-check-circle text-lg"></i><span>题库中无重复题目！共 ${data.total_questions} 道题，哈希已全部更新。</span></div>`;
+                    return;
+                }
+
+                summary.innerHTML = `<div class="flex items-center gap-2 text-orange-600">
+                    <i class="fas fa-exclamation-triangle text-lg"></i>
+                    <span>发现 <b>${data.groups_count}</b> 组重复题，共 <b>${data.duplicate_count}</b> 道重复（题库总计 ${data.total_questions} 道，已更新 ${data.hashes_updated} 个哈希值）</span>
+                </div>`;
+                actions.style.display = 'flex';
+
+                const typeNames = { single: '单选', multiple: '多选', shared: '共用题干', case: '案例分析' };
+
+                data.duplicate_groups.forEach((group, gi) => {
+                    let html = `<div class="border rounded-lg overflow-hidden">
+                        <div class="bg-orange-50 px-4 py-2 flex items-center justify-between">
+                            <span class="font-semibold text-sm text-orange-800">
+                                <i class="fas fa-copy mr-1"></i>第 ${gi+1} 组 · ${typeNames[group.type] || group.type} · ${group.count} 道重复
+                            </span>
+                            <span class="text-xs text-gray-500 truncate max-w-xs">${group.preview}</span>
+                        </div>
+                        <div class="p-3 space-y-2">`;
+
+                    group.questions.forEach(q => {
+                        const refBadge = q.referenced_by.length > 0
+                            ? `<span class="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full"><i class="fas fa-link text-xs"></i>${q.referenced_by.length} 个试卷</span>`
+                            : `<span class="text-xs text-gray-400">未被引用</span>`;
+                        const keepRadio = `<input type="radio" name="dedup-group-${gi}" value="${q.id}" ${q.id === group.questions[0].id ? 'checked' : ''} class="mr-1" title="保留此题">`;
+
+                        html += `<div class="flex items-center gap-3 p-2 rounded ${q.id === group.questions[0].id ? 'bg-green-50' : 'bg-gray-50'} hover:bg-gray-100">
+                            ${keepRadio}
+                            <span class="text-xs font-mono text-gray-500 w-12">ID:${q.id}</span>
+                            <span class="text-xs px-1.5 py-0.5 rounded ${q.category ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${q.category || '无分类'}</span>
+                            ${refBadge}
+                            <span class="text-xs text-gray-500 flex-1 truncate">${q.content_preview}</span>
+                        </div>`;
+                    });
+
+                    html += `</div>
+                        <div class="bg-gray-50 px-4 py-2 flex justify-end">
+                            <button class="btn btn-primary text-xs" onclick="dedupMergeGroup(${gi})"><i class="fas fa-compress-arrows-alt mr-1"></i>合并此组</button>
+                        </div>
+                    </div>`;
+
+                    groups.innerHTML += html;
+                });
+
+                // Store groups data globally for merge
+                window._dedupGroups = data.duplicate_groups;
+
+            } catch (e) {
+                summary.innerHTML = '<span class="text-red-500">扫描出错: ' + e.message + '</span>';
+            }
+        }
+
+        async function dedupMergeGroup(groupIndex) {
+            const group = window._dedupGroups[groupIndex];
+            if (!group) return;
+
+            // Get selected keep_id from radio
+            const radioName = `dedup-group-${groupIndex}`;
+            const selected = document.querySelector(`input[name="${radioName}"]:checked`);
+            if (!selected) { alert('请选择要保留的题目'); return; }
+
+            const keepId = parseInt(selected.value);
+            const removeIds = group.questions.filter(q => q.id !== keepId).map(q => q.id);
+
+            if (!confirm(`确定合并此组？保留 ID:${keepId}，删除 ${removeIds.length} 道重复题。`)) return;
+
+            const resp = await fetch('/api/admin/questions/dedup-merge', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ keep_id: keepId, remove_ids: removeIds })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert(`合并成功！删除 ${data.deleted_count} 道重复题，迁移 ${data.merged_refs} 个试卷引用。`);
+                findDuplicates(); // Refresh
+                loadQuestions();
+            } else {
+                alert('合并失败: ' + (data.error || '未知错误'));
+            }
+        }
+
+        async function dedupMergeAll() {
+            if (!confirm('确定要自动合并所有重复组？每组将保留最早（ID最小）的题目，删除其余重复题。此操作不可恢复！')) return;
+            if (!confirm('再次确认：此操作将删除所有重复题目，请确保已备份数据库。')) return;
+
+            const resp = await fetch('/api/admin/questions/dedup-merge-all', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert(`一键去重完成！\n合并 ${data.groups_merged} 组\n删除 ${data.total_deleted} 道重复题\n迁移 ${data.total_merged_refs} 个试卷引用`);
+                findDuplicates(); // Refresh
+                loadQuestions();
+            } else {
+                alert('操作失败: ' + (data.error || '未知错误'));
             }
         }
 
