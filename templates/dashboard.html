@@ -191,7 +191,8 @@
                                     <span class="status-failed text-xs font-semibold"><i class="fas fa-times-circle mr-1"></i>未通过</span>
                                     {% endif %}
                                     <span class="text-sm font-bold {% if h.total_score >= h.pass_score %}text-green-600{% else %}text-red-500{% endif %}">{{ h.total_score }}分</span>
-                                    <a href="/result/{{ h.id }}" class="text-xs text-blue-600 hover:text-blue-800"><i class="fas fa-eye"></i></a>
+                                    <a href="/exam/{{ h.exam_id }}" class="text-xs text-green-600 hover:text-green-800" title="查看答案解析"><i class="fas fa-book-open"></i> 解析</a>
+                                    <a href="/result/{{ h.id }}" class="text-xs text-blue-600 hover:text-blue-800" title="成绩详情"><i class="fas fa-chart-bar"></i></a>
                                 {% else %}
                                     <span class="status-progress text-xs font-semibold"><i class="fas fa-spinner mr-1"></i>进行中</span>
                                     <a href="/exam/{{ h.exam_id }}" class="text-xs text-orange-600 hover:text-orange-800"><i class="fas fa-play"></i> 继续</a>
