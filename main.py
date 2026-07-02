@@ -193,6 +193,9 @@ def init_db():
             db.execute('ALTER TABLE site_settings ADD COLUMN allow_account_login INTEGER DEFAULT 1')
         if 'allow_student_id_login' not in ss_cols:
             db.execute('ALTER TABLE site_settings ADD COLUMN allow_student_id_login INTEGER DEFAULT 1')
+        user_cols2 = [c2['name'] for c2 in db.execute('PRAGMA table_info(users)').fetchall()]
+        if 'plain_password' not in user_cols2:
+            db.execute('ALTER TABLE users ADD COLUMN plain_password TEXT DEFAULT ""')
 
 
         # Create ads table
@@ -432,8 +435,8 @@ async def api_register(request: Request):
         if existing:
             return JSONResponse({"error": "用户名已存在"}, status_code=400)
         db.execute(
-            "INSERT INTO users (username, password, real_name, student_id, login_type, role) VALUES (?, ?, ?, '', 'account', 'student')",
-            (username, hash_password(password), real_name or username)
+            "INSERT INTO users (username, password, real_name, student_id, login_type, role, plain_password) VALUES (?, ?, ?, '', 'account', 'student', ?)",
+            (username, hash_password(password), real_name or username, password)
         )
 
     return JSONResponse({"success": True})
@@ -1433,17 +1436,34 @@ async def export_exam(eid: int, request: Request):
 @app.get("/api/admin/users")
 async def list_users(request: Request):
     user = require_admin(request)
+    search = request.query_params.get("search", "").strip()
     with get_db() as db:
-        users = db.execute("""
-            SELECT u.*, COUNT(es.id) as exam_count,
-                   COALESCE(AVG(CASE WHEN es.status='submitted' THEN es.total_score END), 0) as avg_score
-            FROM users u
-            LEFT JOIN exam_sessions es ON u.id = es.user_id
-            WHERE u.role = 'student'
-            GROUP BY u.id
-            ORDER BY u.created_at DESC
-        """).fetchall()
-    return JSONResponse({"items": [dict(u) for u in users]})
+        if search:
+            users = db.execute("""
+                SELECT u.*, COUNT(es.id) as exam_count,
+                       COALESCE(AVG(CASE WHEN es.status='submitted' THEN es.total_score END), 0) as avg_score
+                FROM users u
+                LEFT JOIN exam_sessions es ON u.id = es.user_id
+                WHERE u.role = 'student' AND (u.username LIKE ? OR u.student_id LIKE ? OR u.real_name LIKE ?)
+                GROUP BY u.id
+                ORDER BY u.created_at DESC
+            """, ("%" + search + "%", "%" + search + "%", "%" + search + "%")).fetchall()
+        else:
+            users = db.execute("""
+                SELECT u.*, COUNT(es.id) as exam_count,
+                       COALESCE(AVG(CASE WHEN es.status='submitted' THEN es.total_score END), 0) as avg_score
+                FROM users u
+                LEFT JOIN exam_sessions es ON u.id = es.user_id
+                WHERE u.role = 'student'
+                GROUP BY u.id
+                ORDER BY u.created_at DESC
+            """).fetchall()
+    items = []
+    for u in users:
+        d = dict(u)
+        d.pop("password", None)
+        items.append(d)
+    return JSONResponse({"items": items, "total": len(items)})
 
 @app.post("/api/admin/users")
 async def create_user(request: Request):
@@ -1469,8 +1489,8 @@ async def create_user(request: Request):
             if existing_sid:
                 return JSONResponse({"error": "学号已存在"}, status_code=400)
         db.execute(
-            "INSERT INTO users (username, password, real_name, student_id, login_type, role) VALUES (?, ?, ?, ?, ?, ?)",
-            (username, hash_password(password), real_name or username, student_id, login_type, role)
+            "INSERT INTO users (username, password, real_name, student_id, login_type, role, plain_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (username, hash_password(password), real_name or username, student_id, login_type, role, password)
         )
 
     return JSONResponse({"success": True})
@@ -1516,8 +1536,7 @@ async def reset_password(uid: int, request: Request):
     new_password = data.get("new_password", "123456")
 
     with get_db() as db:
-        db.execute("UPDATE users SET password=? WHERE id=?", (hash_password(new_password), uid))
-
+        db.execute("UPDATE users SET password=?, plain_password=? WHERE id=?", (hash_password(new_password), uid))
     return JSONResponse({"success": True})
 
 
@@ -3037,6 +3056,9 @@ def get_site_settings():
             db.execute("ALTER TABLE site_settings ADD COLUMN allow_account_login INTEGER DEFAULT 1")
         if "allow_student_id_login" not in cols:
             db.execute("ALTER TABLE site_settings ADD COLUMN allow_student_id_login INTEGER DEFAULT 1")
+        user_cols2 = [c2['name'] for c2 in db.execute('PRAGMA table_info(users)').fetchall()]
+        if 'plain_password' not in user_cols2:
+            db.execute('ALTER TABLE users ADD COLUMN plain_password TEXT DEFAULT ""')
         if not row:
             row = db.execute("SELECT * FROM site_settings WHERE id=1").fetchone()
             d = dict(row)
