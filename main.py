@@ -41,6 +41,45 @@ def verify_password(password: str, hashed: str) -> bool:
         return False
 
 # ============================================================
+# Content normalization & dedup hashing
+# ============================================================
+def normalize_text(text: str) -> str:
+    """Normalize question content for dedup comparison.
+    - Strip leading/trailing whitespace
+    - Full-width punctuation → half-width
+    - Collapse consecutive spaces/newlines
+    - Lowercase
+    """
+    if not text:
+        return ""
+    import unicodedata
+    # Full-width to half-width for ASCII-range chars
+    result = []
+    for ch in text:
+        code = ord(ch)
+        if 0xFF01 <= code <= 0xFF5E:
+            result.append(chr(code - 0xFEE0))
+        elif code == 0x3000:  # full-width space
+            result.append(' ')
+        else:
+            result.append(ch)
+    s = ''.join(result)
+    # Normalize unicode
+    s = unicodedata.normalize('NFKC', s)
+    # Collapse whitespace
+    s = re.sub(r'\s+', ' ', s).strip()
+    return s.lower()
+
+def compute_content_hash(q_type: str, content: str, options: str, answer: str, sub_questions: str) -> str:
+    """Compute SHA-256 hash of normalized question content for dedup."""
+    norm = normalize_text(content)
+    norm_opts = normalize_text(options) if options else ""
+    norm_ans = normalize_text(answer) if answer else ""
+    norm_subs = normalize_text(sub_questions) if sub_questions else ""
+    canonical = f"{q_type}||{norm}||{norm_opts}||{norm_ans}||{norm_subs}"
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+# ============================================================
 # Configuration
 # ============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -168,6 +207,8 @@ def init_db():
             db.execute("ALTER TABLE questions ADD COLUMN images TEXT DEFAULT '[]'")
         if "source_set" not in cols:
             db.execute("ALTER TABLE questions ADD COLUMN source_set TEXT DEFAULT ''")
+        if "content_hash" not in cols:
+            db.execute("ALTER TABLE questions ADD COLUMN content_hash TEXT DEFAULT ''")
 
         # Migration: add student_id and login_type to users
         user_cols = [row["name"] for row in db.execute("PRAGMA table_info(users)").fetchall()]
@@ -948,12 +989,15 @@ async def create_question(request: Request):
         return JSONResponse({"error": "答案不能为空"}, status_code=400)
 
     with get_db() as db:
+        opts_json = json.dumps(options, ensure_ascii=False)
+        subs_json = json.dumps(sub_questions, ensure_ascii=False)
+        imgs_json = json.dumps(images, ensure_ascii=False)
+        chash = compute_content_hash(q_type, content, opts_json, answer, subs_json)
         db.execute(
-            """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, images)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (q_type, category, content, json.dumps(options, ensure_ascii=False),
-             answer, explanation, score, json.dumps(sub_questions, ensure_ascii=False),
-             json.dumps(images, ensure_ascii=False))
+            """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, images, content_hash)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (q_type, category, content, opts_json,
+             answer, explanation, score, subs_json, imgs_json, chash)
         )
 
     return JSONResponse({"success": True})
@@ -964,17 +1008,20 @@ async def update_question(qid: int, request: Request):
     data = await request.json()
 
     with get_db() as db:
+        opts_json = json.dumps(data.get("options", []), ensure_ascii=False)
+        subs_json = json.dumps(data.get("sub_questions", []), ensure_ascii=False)
+        imgs_json = json.dumps(data.get("images", []), ensure_ascii=False)
+        chash = compute_content_hash(
+            data.get("type"), data.get("content", ""),
+            opts_json, data.get("answer", ""), subs_json
+        )
         db.execute("""
             UPDATE questions SET type=?, category=?, content=?, options=?, answer=?,
-            explanation=?, score=?, sub_questions=?, images=? WHERE id=?
+            explanation=?, score=?, sub_questions=?, images=?, content_hash=? WHERE id=?
         """, (
             data.get("type"), data.get("category", ""), data.get("content", ""),
-            json.dumps(data.get("options", []), ensure_ascii=False),
-            data.get("answer", ""), data.get("explanation", ""),
-            data.get("score", 1),
-            json.dumps(data.get("sub_questions", []), ensure_ascii=False),
-            json.dumps(data.get("images", []), ensure_ascii=False),
-            qid
+            opts_json, data.get("answer", ""), data.get("explanation", ""),
+            data.get("score", 1), subs_json, imgs_json, chash, qid
         ))
 
     return JSONResponse({"success": True})
@@ -997,6 +1044,195 @@ async def batch_delete_questions(request: Request):
         placeholders = ",".join("?" * len(ids))
         db.execute(f"DELETE FROM questions WHERE id IN ({placeholders})", ids)
     return JSONResponse({"success": True, "deleted": len(ids)})
+
+# ============================================================
+# Admin API - Question Deduplication
+# ============================================================
+@app.post("/api/admin/questions/find-duplicates")
+async def find_duplicate_questions(request: Request):
+    """Scan all questions, compute content_hash, find duplicates."""
+    user = require_admin(request)
+    with get_db() as db:
+        questions = db.execute("SELECT id, type, content, options, answer, sub_questions, content_hash, category, source_set FROM questions").fetchall()
+
+        # Step 1: Compute/update content_hash for all questions
+        updated = 0
+        for q in questions:
+            chash = compute_content_hash(q["type"], q["content"], q["options"], q["answer"], q["sub_questions"])
+            if q["content_hash"] != chash:
+                db.execute("UPDATE questions SET content_hash=? WHERE id=?", (chash, q["id"]))
+                updated += 1
+
+        # Step 2: Find groups with same content_hash (count > 1)
+        dup_groups = db.execute("""
+            SELECT content_hash, COUNT(*) as cnt
+            FROM questions
+            WHERE content_hash != ''
+            GROUP BY content_hash
+            HAVING cnt > 1
+            ORDER BY cnt DESC
+        """).fetchall()
+
+        # Step 3: Build duplicate group details
+        result = []
+        for dg in dup_groups:
+            group_qs = db.execute(
+                "SELECT id, type, content, category, source_set, created_at FROM questions WHERE content_hash=? ORDER BY id ASC",
+                (dg["content_hash"],)
+            ).fetchall()
+            # Check which exams reference these questions
+            qids = [gq["id"] for gq in group_qs]
+            placeholders = ",".join("?" * len(qids))
+            refs = db.execute(f"""
+                SELECT eq.question_id, e.id as exam_id, e.title as exam_title
+                FROM exam_questions eq
+                JOIN exams e ON eq.exam_id = e.id
+                WHERE eq.question_id IN ({placeholders})
+            """, qids).fetchall()
+            ref_map = {}
+            for r in refs:
+                ref_map.setdefault(r["question_id"], []).append({"exam_id": r["exam_id"], "exam_title": r["exam_title"]})
+
+            # Get first 60 chars of content as preview
+            preview = group_qs[0]["content"][:60].replace('\n', ' ') + ("..." if len(group_qs[0]["content"]) > 60 else "")
+
+            result.append({
+                "content_hash": dg["content_hash"],
+                "count": dg["cnt"],
+                "preview": preview,
+                "type": group_qs[0]["type"],
+                "questions": [
+                    {
+                        "id": gq["id"],
+                        "type": gq["type"],
+                        "category": gq["category"],
+                        "source_set": gq["source_set"],
+                        "created_at": gq["created_at"],
+                        "content_preview": gq["content"][:80].replace('\n', ' '),
+                        "referenced_by": ref_map.get(gq["id"], [])
+                    }
+                    for gq in group_qs
+                ]
+            })
+
+    return JSONResponse({
+        "success": True,
+        "total_questions": len(questions),
+        "hashes_updated": updated,
+        "duplicate_groups": result,
+        "duplicate_count": sum(g["count"] for g in result),
+        "groups_count": len(result)
+    })
+
+@app.post("/api/admin/questions/dedup-merge")
+async def dedup_merge_questions(request: Request):
+    """Merge duplicate questions: keep one, migrate exam_questions refs, delete the rest."""
+    user = require_admin(request)
+    data = await request.json()
+    keep_id = data.get("keep_id")
+    remove_ids = data.get("remove_ids", [])
+
+    if not keep_id or not remove_ids:
+        return JSONResponse({"error": "参数错误"}, status_code=400)
+
+    with get_db() as db:
+        # Verify keep_id exists
+        keep = db.execute("SELECT id FROM questions WHERE id=?", (keep_id,)).fetchone()
+        if not keep:
+            return JSONResponse({"error": "保留题目不存在"}, status_code=404)
+
+        merged_refs = 0
+        deleted = 0
+        for rid in remove_ids:
+            if rid == keep_id:
+                continue
+            # Migrate exam_questions references
+            existing_refs = db.execute(
+                "SELECT exam_id FROM exam_questions WHERE question_id=? AND exam_id NOT IN (SELECT exam_id FROM exam_questions WHERE question_id=?)",
+                (rid, keep_id)
+            ).fetchall()
+            for ref in existing_refs:
+                # Get display_order and score_override from the old ref
+                old_ref = db.execute(
+                    "SELECT display_order, score_override FROM exam_questions WHERE question_id=? AND exam_id=?",
+                    (rid, ref["exam_id"])
+                ).fetchone()
+                if old_ref:
+                    db.execute(
+                        "INSERT OR IGNORE INTO exam_questions (exam_id, question_id, display_order, score_override) VALUES (?, ?, ?, ?)",
+                        (ref["exam_id"], keep_id, old_ref["display_order"], old_ref["score_override"])
+                    )
+                    merged_refs += 1
+
+            # Delete old exam_questions refs
+            db.execute("DELETE FROM exam_questions WHERE question_id=?", (rid,))
+            # Delete the duplicate question
+            db.execute("DELETE FROM questions WHERE id=?", (rid,))
+            deleted += 1
+
+    return JSONResponse({
+        "success": True,
+        "kept_id": keep_id,
+        "deleted_count": deleted,
+        "merged_refs": merged_refs
+    })
+
+@app.post("/api/admin/questions/dedup-merge-all")
+async def dedup_merge_all(request: Request):
+    """Auto-merge all duplicate groups: keep the oldest (lowest ID) in each group."""
+    user = require_admin(request)
+    with get_db() as db:
+        # Find all duplicate groups
+        dup_groups = db.execute("""
+            SELECT content_hash, COUNT(*) as cnt
+            FROM questions
+            WHERE content_hash != ''
+            GROUP BY content_hash
+            HAVING cnt > 1
+        """).fetchall()
+
+        total_deleted = 0
+        total_merged_refs = 0
+        groups_merged = 0
+
+        for dg in dup_groups:
+            group_qs = db.execute(
+                "SELECT id FROM questions WHERE content_hash=? ORDER BY id ASC",
+                (dg["content_hash"],)
+            ).fetchall()
+
+            keep_id = group_qs[0]["id"]  # Keep the oldest
+            remove_ids = [gq["id"] for gq in group_qs[1:]]
+
+            for rid in remove_ids:
+                # Migrate exam_questions refs
+                existing_refs = db.execute(
+                    "SELECT exam_id FROM exam_questions WHERE question_id=? AND exam_id NOT IN (SELECT exam_id FROM exam_questions WHERE question_id=?)",
+                    (rid, keep_id)
+                ).fetchall()
+                for ref in existing_refs:
+                    old_ref = db.execute(
+                        "SELECT display_order, score_override FROM exam_questions WHERE question_id=? AND exam_id=?",
+                        (rid, ref["exam_id"])
+                    ).fetchone()
+                    if old_ref:
+                        db.execute(
+                            "INSERT OR IGNORE INTO exam_questions (exam_id, question_id, display_order, score_override) VALUES (?, ?, ?, ?)",
+                            (ref["exam_id"], keep_id, old_ref["display_order"], old_ref["score_override"])
+                        )
+                        total_merged_refs += 1
+                db.execute("DELETE FROM exam_questions WHERE question_id=?", (rid,))
+                db.execute("DELETE FROM questions WHERE id=?", (rid,))
+                total_deleted += 1
+
+            groups_merged += 1
+
+    return JSONResponse({
+        "success": True,
+        "groups_merged": groups_merged,
+        "total_deleted": total_deleted,
+        "total_merged_refs": total_merged_refs
+    })
 
 # ============================================================
 # Admin API - Import Questions
@@ -1025,19 +1261,23 @@ async def import_json(request: Request, file: UploadFile = File(...), source_set
                     errors.append(f"第{idx+1}题: 无效题型 {q_type}")
                     continue
 
+                opts_j = json.dumps(item.get("options", []), ensure_ascii=False)
+                subs_j = json.dumps(item.get("sub_questions", []), ensure_ascii=False)
+                chash = compute_content_hash(q_type, item.get("content", ""), opts_j, item.get("answer", ""), subs_j)
                 cursor = db.execute(
-                    """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, source_set)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, source_set, content_hash)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         q_type,
                         item.get("category", ""),
                         item.get("content", ""),
-                        json.dumps(item.get("options", []), ensure_ascii=False),
+                        opts_j,
                         item.get("answer", ""),
                         item.get("explanation", ""),
                         item.get("score", 1),
-                        json.dumps(item.get("sub_questions", []), ensure_ascii=False),
+                        subs_j,
                         source_set or item.get("source_set", ""),
+                        chash,
                     )
                 )
                 question_ids.append(cursor.lastrowid)
@@ -1103,12 +1343,15 @@ async def import_excel(request: Request, file: UploadFile = File(...), source_se
                         errors.append(f"第{row_idx}行: 无效题型")
                         continue
 
+                    opts_j = json.dumps(options, ensure_ascii=False)
+                    subs_j = json.dumps(sub_questions, ensure_ascii=False)
+                    chash = compute_content_hash(q_type, q_content, opts_j, answer, subs_j)
                     cursor = db.execute(
-                        """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, source_set)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (q_type, category, q_content, json.dumps(options, ensure_ascii=False),
-                         answer, explanation, score_val, json.dumps(sub_questions, ensure_ascii=False),
-                         source_set)
+                        """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, source_set, content_hash)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (q_type, category, q_content, opts_j,
+                         answer, explanation, score_val, subs_j,
+                         source_set, chash)
                     )
                     question_ids.append(cursor.lastrowid)
                     count += 1
@@ -2434,16 +2677,17 @@ async def import_txt(request: Request, file: UploadFile = File(...), source_set:
     with get_db() as db:
         for q in questions:
             try:
+                opts_j = json.dumps(q.get("options", []), ensure_ascii=False)
+                subs_j = json.dumps(q.get("sub_questions", []), ensure_ascii=False)
+                chash = compute_content_hash(q["type"], q["content"], opts_j, q.get("answer", ""), subs_j)
                 cursor = db.execute(
-                    """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, images, source_set)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, images, source_set, content_hash)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (q["type"], q.get("category", ""), q["content"],
-                     json.dumps(q.get("options", []), ensure_ascii=False),
+                     opts_j,
                      q.get("answer", ""), q.get("explanation", ""),
-                     q.get("score", 1),
-                     json.dumps(q.get("sub_questions", []), ensure_ascii=False),
-                     "[]",
-                     source_set)
+                     q.get("score", 1), subs_j,
+                     "[]", source_set, chash)
                 )
                 question_ids.append(cursor.lastrowid)
                 count += 1
@@ -2474,16 +2718,17 @@ async def import_word(request: Request, file: UploadFile = File(...), source_set
             try:
                 # Extract image URLs from content
                 img_urls = re.findall(r'/static/uploads/[a-f0-9]+\.\w+', q["content"])
+                opts_j = json.dumps(q.get("options", []), ensure_ascii=False)
+                subs_j = json.dumps(q.get("sub_questions", []), ensure_ascii=False)
+                chash = compute_content_hash(q["type"], q["content"], opts_j, q.get("answer", ""), subs_j)
                 cursor = db.execute(
-                    """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, images, source_set)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO questions (type, category, content, options, answer, explanation, score, sub_questions, images, source_set, content_hash)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (q["type"], q.get("category", ""), q["content"],
-                     json.dumps(q.get("options", []), ensure_ascii=False),
+                     opts_j,
                      q.get("answer", ""), q.get("explanation", ""),
-                     q.get("score", 1),
-                     json.dumps(q.get("sub_questions", []), ensure_ascii=False),
-                     json.dumps(img_urls),
-                     source_set)
+                     q.get("score", 1), subs_j,
+                     json.dumps(img_urls), source_set, chash)
                 )
                 question_ids.append(cursor.lastrowid)
                 count += 1
@@ -3599,15 +3844,14 @@ async def ai_import_questions(request: Request):
                         errors.append(f"第{i+1}题：缺少必要字段")
                         continue
 
-                    # Format options as A. xxx\nB. xxx
-                    opt_lines = []
-                    for k in sorted(options.keys()):
-                        opt_lines.append(f"{k}. {options[k]}")
-                    options_text = "\n".join(opt_lines)
+                    # Format options as JSON
+                    opts_list = [{"label": k, "text": options[k]} for k in sorted(options.keys())]
+                    opts_j = json.dumps(opts_list, ensure_ascii=False)
+                    chash = compute_content_hash(q_type, question_text, opts_j, answer, "[]")
 
-                    db.execute("""INSERT INTO questions (type, category, question, options, answer, explanation)
-                                  VALUES (?, ?, ?, ?, ?, ?)""",
-                               (q_type, category, question_text, options_text, answer, explanation))
+                    db.execute("""INSERT INTO questions (type, category, content, options, answer, explanation, content_hash)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                (q_type, category, question_text, opts_j, answer, explanation, chash))
                     imported += 1
 
                 elif q_type in ("shared", "case"):
@@ -3625,16 +3869,15 @@ async def ai_import_questions(request: Request):
                     for sq in subs:
                         sq_text = f"[共用题干] {stem}\n{sq.get('question', '')}"
                         options = sq.get("options", {})
-                        opt_lines = []
-                        for k in sorted(options.keys()):
-                            opt_lines.append(f"{k}. {options[k]}")
-                        options_text = "\n".join(opt_lines)
+                        opts_list = [{"label": k, "text": options[k]} for k in sorted(options.keys())]
+                        opts_j = json.dumps(opts_list, ensure_ascii=False)
                         answer = sq.get("answer", "")
                         explanation = sq.get("explanation", "")
+                        chash = compute_content_hash(q_type, sq_text, opts_j, answer, "[]")
 
-                        db.execute("""INSERT INTO questions (type, category, question, options, answer, explanation)
-                                      VALUES (?, ?, ?, ?, ?, ?)""",
-                                   (q_type, category, sq_text, options_text, answer, explanation))
+                        db.execute("""INSERT INTO questions (type, category, content, options, answer, explanation, content_hash)
+                                      VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                    (q_type, category, sq_text, opts_j, answer, explanation, chash))
                         imported += 1
 
             except Exception as e:
@@ -3702,9 +3945,12 @@ async def ai_import_as_exam(request: Request):
                     if len(answer) > 1:
                         q_actual_type = "multiple"
 
+                    opts_list = [{"label": k, "text": options[k]} for k in sorted(options.keys())]
+                    opts_j = json.dumps(opts_list, ensure_ascii=False)
+                    chash = compute_content_hash(q_actual_type, question_text, opts_j, answer, "[]")
                     cursor = db.execute(
-                        "INSERT INTO questions (type, category, question, options, answer, explanation) VALUES (?, ?, ?, ?, ?, ?)",
-                        (q_actual_type, category, question_text, options_text, answer, explanation))
+                        "INSERT INTO questions (type, category, content, options, answer, explanation, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (q_actual_type, category, question_text, opts_j, answer, explanation, chash))
                     question_ids.append(cursor.lastrowid)
                     imported += 1
 
@@ -3716,16 +3962,14 @@ async def ai_import_as_exam(request: Request):
                     for sq in subs:
                         sq_text = "[共用题干] " + stem + "\n" + sq.get("question", "")
                         options = sq.get("options", {})
-                        opt_lines = []
-                        for k in sorted(options.keys()):
-                            opt_lines.append(k + ". " + options[k])
-                        options_text = "\n".join(opt_lines)
                         answer = sq.get("answer", "")
                         explanation = sq.get("explanation", "")
-
+                        opts_list = [{"label": k, "text": options[k]} for k in sorted(options.keys())]
+                        opts_j = json.dumps(opts_list, ensure_ascii=False)
+                        chash = compute_content_hash(actual_type, sq_text, opts_j, answer, "[]")
                         cursor = db.execute(
-                            "INSERT INTO questions (type, category, question, options, answer, explanation) VALUES (?, ?, ?, ?, ?, ?)",
-                            (actual_type, category, sq_text, options_text, answer, explanation))
+                            "INSERT INTO questions (type, category, content, options, answer, explanation, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            (actual_type, category, sq_text, opts_j, answer, explanation, chash))
                         question_ids.append(cursor.lastrowid)
                         imported += 1
 
