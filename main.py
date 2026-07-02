@@ -185,6 +185,13 @@ def init_db():
         )""")
         db.execute('INSERT OR IGNORE INTO site_settings (id) VALUES (1)')
 
+        # Migration: add last_question_index and last_sub_index to exam_sessions
+        es_cols = [row["name"] for row in db.execute("PRAGMA table_info(exam_sessions)").fetchall()]
+        if "last_question_index" not in es_cols:
+            db.execute("ALTER TABLE exam_sessions ADD COLUMN last_question_index INTEGER DEFAULT 0")
+        if "last_sub_index" not in es_cols:
+            db.execute("ALTER TABLE exam_sessions ADD COLUMN last_sub_index INTEGER DEFAULT 0")
+
         # Migration: site_settings columns
         ss_cols = [row['name'] for row in db.execute('PRAGMA table_info(site_settings)').fetchall()]
         if 'allow_register' not in ss_cols:
@@ -528,13 +535,18 @@ async def exam_page(request: Request, exam_id: int):
         if not exam:
             raise HTTPException(status_code=404, detail="考试不存在")
 
-        # Check for existing in-progress session
+        # Check for existing session (any status)
         existing = db.execute(
-            "SELECT id FROM exam_sessions WHERE user_id=? AND exam_id=? AND status='in_progress'",
+            "SELECT * FROM exam_sessions WHERE user_id=? AND exam_id=? ORDER BY id DESC LIMIT 1",
             (user["id"], exam_id)
         ).fetchone()
 
-        if existing:
+        review_mode = False
+        if existing and existing["status"] == "submitted":
+            # Already submitted - enter review mode
+            review_mode = True
+            session_id = existing["id"]
+        elif existing and existing["status"] == "in_progress":
             session_id = existing["id"]
         else:
             # Create new session
@@ -558,6 +570,14 @@ async def exam_page(request: Request, exam_id: int):
             SELECT question_id, sub_index, answer FROM session_answers
             WHERE session_id = ?
         """, (session_id,)).fetchall()
+
+        # Get last position for restoring
+        session_row = db.execute(
+            "SELECT last_question_index, last_sub_index FROM exam_sessions WHERE id=?",
+            (session_id,)
+        ).fetchone()
+        last_qi = session_row["last_question_index"] if session_row and session_row["last_question_index"] else 0
+        last_si = session_row["last_sub_index"] if session_row and session_row["last_sub_index"] else 0
 
     # Prepare question data for JS
     question_data = []
@@ -587,6 +607,15 @@ async def exam_page(request: Request, exam_id: int):
             key = f"{q['id']}_0"
             qd["user_answer"] = answer_map.get(key, "")
 
+        # In review mode, attach correct answer and explanation
+        if review_mode:
+            qd["correct_answer"] = q["answer"]
+            qd["explanation"] = q["explanation"]
+            if q["type"] in ("shared", "case"):
+                subs = json.loads(q["sub_questions"]) if q["sub_questions"] else []
+                for si, sub in enumerate(subs):
+                    sub["correct_answer"] = sub.get("answer", "")
+
         question_data.append(qd)
 
     exam_dict = dict(exam)
@@ -597,6 +626,9 @@ async def exam_page(request: Request, exam_id: int):
         "session_id": session_id,
         "questions": question_data,
         "question_count": len(question_data),
+        "review_mode": review_mode,
+        "last_question_index": last_qi,
+        "last_sub_index": last_si,
     })
 
 @app.get("/result/{session_id}", response_class=HTMLResponse)
@@ -684,6 +716,8 @@ async def save_answer(session_id: int, request: Request):
     question_id = data.get("question_id")
     sub_index = data.get("sub_index", 0)
     answer = data.get("answer", "")
+    current_question_index = data.get("current_question_index")
+    current_sub_index = data.get("current_sub_index")
 
     with get_db() as db:
         # Verify session belongs to user
@@ -709,6 +743,13 @@ async def save_answer(session_id: int, request: Request):
             db.execute(
                 "INSERT INTO session_answers (session_id, question_id, sub_index, answer) VALUES (?, ?, ?, ?)",
                 (session_id, question_id, sub_index, answer)
+            )
+
+        # Update last position
+        if current_question_index is not None:
+            db.execute(
+                "UPDATE exam_sessions SET last_question_index=?, last_sub_index=? WHERE id=?",
+                (current_question_index, current_sub_index or 0, session_id)
             )
 
     return JSONResponse({"success": True})
