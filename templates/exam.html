@@ -213,16 +213,65 @@
         .welcome-banner { margin: 0 !important; border-radius: 0 !important; }
         .col-panel { border-radius: 8px !important; }
     }
+
+    /* ============= Review Mode Styles ============= */
+    .review-mode-header { background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important; }
+    .review-badge { background: rgba(255,255,255,0.25); padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+
+    .opt-review-correct { border-color: #48bb78 !important; background: #f0fff4 !important; }
+    .opt-review-correct .option-label { background: #48bb78 !important; color: white !important; }
+    .opt-review-correct .option-text { color: #276749 !important; font-weight: 500; }
+    .opt-review-correct-picked { border-color: #38a169 !important; background: #c6f6d5 !important; }
+    .opt-review-correct-picked .option-label { background: #38a169 !important; color: white !important; }
+    .opt-review-correct-picked .option-text { color: #276749 !important; font-weight: 500; }
+    .opt-review-wrong { border-color: #f56565 !important; background: #fff5f5 !important; }
+    .opt-review-wrong .option-label { background: #f56565 !important; color: white !important; }
+    .opt-review-wrong .option-text { color: #9b2c2c !important; font-weight: 500; }
+
+    .opt-review-status { margin-left: auto; font-size: 12px; font-weight: 600; white-space: nowrap; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+    .opt-review-status.st-correct { background: #c6f6d5; color: #276749; }
+    .opt-review-status.st-wrong { background: #fed7d7; color: #9b2c2c; }
+    .opt-review-status.st-missed { background: #fef3c7; color: #92400e; }
+
+    .review-answer-summary { display: flex; align-items: center; gap: 16px; font-size: 14px; margin-top: 16px; padding: 10px 16px; background: #f7fafc; border-radius: 8px; flex-wrap: wrap; }
+    .review-label { color: #718096; }
+    .review-correct { color: #276749; font-weight: 700; }
+    .review-wrong { color: #c53030; font-weight: 700; }
+    .review-miss { color: #92400e; font-weight: 700; }
+
+    .review-explanation-box { background: linear-gradient(135deg, #ebf8ff 0%, #e9d8fd 100%); border-radius: 10px; padding: 16px 20px; margin-top: 20px; border-left: 4px solid #4299e1; }
+    .review-exp-title { font-size: 13px; font-weight: 700; color: #2b6cb0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .review-exp-content { font-size: 14px; line-height: 1.8; color: #2d3748; }
+
+    /* In review mode, disable cursor on options */
+    .review-mode .option-item { cursor: default !important; }
+    .review-mode .option-item:hover { border-color: inherit; background: inherit; }
+    .review-mode .opt-review-correct:hover { border-color: #48bb78 !important; background: #f0fff4 !important; }
+    .review-mode .opt-review-correct-picked:hover { border-color: #38a169 !important; background: #c6f6d5 !important; }
+    .review-mode .opt-review-wrong:hover { border-color: #f56565 !important; background: #fff5f5 !important; }
+
+    /* Review mode answer card cells */
+    .ac-cell.ac-review-correct { background: #c6f6d5; border-color: #48bb78; }
+    .ac-cell.ac-review-correct .ac-num { color: #276749; }
+    .ac-cell.ac-review-wrong { background: #fed7d7; border-color: #f56565; }
+    .ac-cell.ac-review-wrong .ac-num { color: #9b2c2c; }
+    .ac-cell.current.ac-review-correct { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+    .ac-cell.current.ac-review-correct .ac-num { color: white; }
+    .ac-cell.current.ac-review-wrong { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+    .ac-cell.current.ac-review-wrong .ac-num { color: white; }
+
 </style>
 </head>
 <body>
-    <div class="exam-container">
+    <div class="exam-container {% if review_mode %}review-mode{% endif %}">
         <!-- Header -->
-        <div class="exam-header">
+        <div class="exam-header {% if review_mode %}review-mode-header{% endif %}">
             <div class="header-left">
                 <span class="header-title">{{ exam.title }}</span>
                 <span class="header-badge">{{ user.real_name }}</span>
-                {% if exam.is_practice %}
+                {% if review_mode %}
+                <span class="review-badge"><i class="fas fa-eye" style="margin-right:4px;"></i>查看解析</span>
+                {% elif exam.is_practice %}
                 <span class="header-badge" style="background:rgba(16,185,129,0.5)">练习模式</span>
                 {% endif %}
             </div>
@@ -230,11 +279,15 @@
                 <button class="nav-toggle" id="nav-toggle-btn" onclick="toggleAnswerCard()" title="答题卡">
                     <i class="fas fa-clipboard-list"></i>
                 </button>
+                {% if not review_mode %}
                 <button class="btn-fullscreen" onclick="toggleFullscreen()"><i class="fas fa-expand" style="margin-right:4px;"></i><span>全屏</span></button>
                 <div class="timer-box" id="timer-box">
                     <i class="fas fa-clock"></i>
                     <span id="timer-display">{{ '%02d' % (exam.duration // 60) }}:{{ '%02d' % (exam.duration % 60) }}:00</span>
                 </div>
+                {% else %}
+                <a href="/student" class="btn-fullscreen" style="text-decoration:none;"><i class="fas fa-arrow-left" style="margin-right:4px;"></i><span>返回</span></a>
+                {% endif %}
             </div>
         </div>
 
@@ -259,6 +312,7 @@
                     <!-- Dynamic answer card sections rendered by JS -->
                 </div>
                 <div class="answer-card-footer">
+                    {% if not review_mode %}
                     <div class="ac-legend">
                         <div class="ac-legend-item"><div class="ac-legend-box lb-answered"></div>已答</div>
                         <div class="ac-legend-item"><div class="ac-legend-box lb-partial"></div>部分</div>
@@ -271,6 +325,16 @@
                     <button class="btn-submit" onclick="showSubmitModal()">
                         <i class="fas fa-paper-plane" style="margin-right:4px;"></i> 交 卷
                     </button>
+                    {% else %}
+                    <div class="ac-legend">
+                        <div class="ac-legend-item"><div class="ac-legend-box" style="background:#48bb78;border-color:#48bb78;"></div>正确</div>
+                        <div class="ac-legend-item"><div class="ac-legend-box" style="background:#f56565;border-color:#f56565;"></div>错误</div>
+                        <div class="ac-legend-item"><div class="ac-legend-box lb-current"></div>当前</div>
+                    </div>
+                    <a href="/student" style="display:block;width:100%;padding:10px;background:linear-gradient(135deg,#047857,#065f46);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;text-align:center;text-decoration:none;letter-spacing:1px;">
+                        <i class="fas fa-arrow-left" style="margin-right:4px;"></i> 返回考生中心
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -280,18 +344,22 @@
             <button class="bb-btn" id="btn-prev" onclick="prevQuestion()">
                 <i class="fas fa-chevron-left"></i><span class="bb-label">上一题</span>
             </button>
+            {% if not review_mode %}
             <button class="bb-btn bb-btn-mark" id="btn-mark" onclick="toggleMark()" title="标记待复查 (M)">
                 <i class="fas fa-flag"></i><span class="bb-label">标记</span>
             </button>
+            {% endif %}
             <div class="bb-position" id="question-position">
                 <strong>1</strong> / {{ question_count }}
             </div>
             <button class="bb-btn bb-btn-card" id="btn-card" onclick="toggleAnswerCard()" title="答题卡">
                 <i class="fas fa-th"></i><span class="bb-label">答题卡</span>
             </button>
+            {% if not review_mode %}
             <button class="bb-btn bb-btn-submit-mobile" onclick="showSubmitModal()">
                 <i class="fas fa-paper-plane"></i><span class="bb-label">交卷</span>
             </button>
+            {% endif %}
             <button class="bb-btn bb-btn-primary" id="btn-next" onclick="nextQuestion()">
                 <span class="bb-label">下一题</span><i class="fas fa-chevron-right"></i>
             </button>
@@ -337,12 +405,15 @@
         // ============================================================
         const SESSION_ID = {{ session_id }};
         const EXAM_DURATION = {{ exam.duration }};
+        const REVIEW_MODE = {{ 'true' if review_mode else 'false' }};
+        const LAST_QI = {{ last_question_index }};
+        const LAST_SI = {{ last_sub_index }};
         const questions = {{ questions | tojson }};
         const TOTAL_QUESTIONS = questions.length;
 
         // State
-        let currentIndex = 0;
-        let currentSubIndex = 0;
+        let currentIndex = REVIEW_MODE ? 0 : LAST_QI;
+        let currentSubIndex = REVIEW_MODE ? 0 : LAST_SI;
         let userAnswers = {}; // { "questionIdx_subIdx": "answer" }
         let markedQuestions = new Set(); // set of question indices flagged for review
         let timerInterval;
@@ -416,7 +487,9 @@
             // Question type badge + mark indicator
             html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">`;
             html += `<div class="question-type-badge ${typeClasses[q.type]}">${typeNames[q.type]}</div>`;
-            if (markedQuestions.has(currentIndex)) {
+            if (REVIEW_MODE) {
+                html += `<span class="question-type-badge" style="background:#fef3c7;color:#92400e;"><i class="fas fa-eye" style="margin-right:4px;"></i>查看解析</span>`;
+            } else if (markedQuestions.has(currentIndex)) {
                 html += `<span class="question-type-badge" style="background:#fef3c7;color:#b45309;"><i class="fas fa-flag" style="margin-right:4px;"></i>已标记</span>`;
             }
             html += `</div>`;
@@ -430,21 +503,59 @@
                 const currentAnswer = userAnswers[`${currentIndex}_0`] || '';
                 const answerSet = new Set(currentAnswer.toUpperCase().replace(/[,，]/g, ''));
 
-                if (isCheckbox) {
+                if (isCheckbox && !REVIEW_MODE) {
                     html += `<div style="font-size:12px;color:#b45309;margin-bottom:10px;display:flex;align-items:center;gap:4px;"><i class="fas fa-info-circle"></i> 本题为多项选择题，请选择所有正确选项</div>`;
                 }
+
+                // In review mode, determine correct answer set
+                let correctSet = new Set();
+                if (REVIEW_MODE && q.correct_answer) {
+                    if (q.type === 'multiple') {
+                        q.correct_answer.toUpperCase().replace(/[,，]/g, '').split('').forEach(c => correctSet.add(c));
+                    } else {
+                        correctSet.add(q.correct_answer.toUpperCase());
+                    }
+                }
+
                 html += '<div class="options-container">';
                 q.options.forEach(opt => {
                     const selected = answerSet.has(opt.label);
+                    const isCorrectOpt = REVIEW_MODE && correctSet.has(opt.label.toUpperCase());
+                    const isUserWrong = REVIEW_MODE && selected && !isCorrectOpt;
+                    const isMissed = REVIEW_MODE && isCorrectOpt && !selected;
+                    let optCls = 'option-item';
+                    if (isCheckbox) optCls += ' checkbox';
+                    if (selected && !REVIEW_MODE) optCls += ' selected';
+                    if (REVIEW_MODE) {
+                        if (isCorrectOpt && selected) optCls += ' opt-review-correct-picked';
+                        else if (isCorrectOpt) optCls += ' opt-review-correct';
+                        else if (isUserWrong) optCls += ' opt-review-wrong';
+                    } else if (selected) {
+                        optCls += ' selected';
+                    }
+                    const clickHandler = REVIEW_MODE ? '' : `onclick="selectOption('${opt.label}', ${isCheckbox})"`;
                     html += `
-                        <div class="option-item ${isCheckbox ? 'checkbox' : ''} ${selected ? 'selected' : ''}"
-                             onclick="selectOption('${opt.label}', ${isCheckbox})">
+                        <div class="${optCls}" ${clickHandler}>
                             ${isCheckbox ? `<i class="fas ${selected ? 'fa-check-square' : 'fa-square'}" style="margin-right:8px;color:${selected ? '#3182ce' : '#cbd5e0'};font-size:16px;flex-shrink:0;"></i>` : ''}
                             <div class="option-label">${opt.label}</div>
                             <div class="option-text">${opt.text}</div>
+                            ${REVIEW_MODE && isCorrectOpt && selected ? '<span class="opt-review-status st-correct"><i class="fas fa-check" style="font-size:10px;"></i> 正确</span>' : ''}
+                            ${REVIEW_MODE && isCorrectOpt && !selected ? '<span class="opt-review-status st-missed"><i class="fas fa-bullseye" style="font-size:10px;"></i> 正确项</span>' : ''}
+                            ${REVIEW_MODE && isUserWrong ? '<span class="opt-review-status st-wrong"><i class="fas fa-times" style="font-size:10px;"></i> 你的选择</span>' : ''}
                         </div>`;
                 });
                 html += '</div>';
+
+                // Answer summary in review mode
+                if (REVIEW_MODE) {
+                    const userAns = currentAnswer || '未作答';
+                    const correctAns = q.correct_answer || '';
+                    const isCorrect = userAns.toUpperCase().replace(/[,，]/g, '') === correctAns.toUpperCase().replace(/[,，]/g, '');
+                    html += `<div class="review-answer-summary">
+                        <span><span class="review-label">你的答案：</span><span class="${!currentAnswer ? 'review-miss' : isCorrect ? 'review-correct' : 'review-wrong'}">${userAns}</span></span>
+                        <span><span class="review-label">正确答案：</span><span class="review-correct">${correctAns}</span></span>
+                    </div>`;
+                }
 
             } else if (q.type === 'shared' || q.type === 'case') {
                 // Sub-questions
@@ -468,8 +579,6 @@
                     html += `<div class="question-content" style="font-weight:600;margin-bottom:16px;">提问 ${currentSubIndex + 1}：${sub.content}</div>`;
 
                     const isCheckbox = q.type === 'case';
-                    // For case type: always allow multi-select (不定项), add visual hint
-                    
                     const currentAnswer = userAnswers[`${currentIndex}_${currentSubIndex}`] || '';
                     let answerSet;
                     if (isCheckbox) {
@@ -478,21 +587,69 @@
                         answerSet = new Set([currentAnswer.toUpperCase()]);
                     }
 
+                    // In review mode, determine correct answer set for sub-question
+                    let subCorrectSet = new Set();
+                    if (REVIEW_MODE && sub.correct_answer) {
+                        if (isCheckbox) {
+                            try { subCorrectSet = new Set(JSON.parse(sub.correct_answer)); } catch(e) { sub.correct_answer.toUpperCase().replace(/[,，]/g, '').split('').forEach(c => subCorrectSet.add(c)); }
+                        } else {
+                            subCorrectSet.add(sub.correct_answer.toUpperCase());
+                        }
+                    }
+
                     const subOptions = sub.options || [];
                     html += '<div class="options-container">';
                     subOptions.forEach(opt => {
                         const selected = answerSet.has(opt.label);
+                        const isCorrectOpt = REVIEW_MODE && subCorrectSet.has(opt.label.toUpperCase());
+                        const isUserWrong = REVIEW_MODE && selected && !isCorrectOpt;
+                        let optCls = 'option-item';
+                        if (isCheckbox) optCls += ' checkbox';
+                        if (REVIEW_MODE) {
+                            if (isCorrectOpt && selected) optCls += ' opt-review-correct-picked';
+                            else if (isCorrectOpt) optCls += ' opt-review-correct';
+                            else if (isUserWrong) optCls += ' opt-review-wrong';
+                        } else if (selected) {
+                            optCls += ' selected';
+                        }
+                        const clickHandler = REVIEW_MODE ? '' : `onclick="selectSubOption('${opt.label}', ${isCheckbox})"`;
                         html += `
-                            <div class="option-item ${isCheckbox ? 'checkbox' : ''} ${selected ? 'selected' : ''}"
-                                 onclick="selectSubOption('${opt.label}', ${isCheckbox})">
+                            <div class="${optCls}" ${clickHandler}>
                                 ${isCheckbox ? `<i class="fas ${selected ? 'fa-check-square' : 'fa-square'}" style="margin-right:8px;color:${selected ? '#3182ce' : '#cbd5e0'};font-size:16px;flex-shrink:0;"></i>` : ''}
                                 <div class="option-label">${opt.label}</div>
                                 <div class="option-text">${opt.text}</div>
+                                ${REVIEW_MODE && isCorrectOpt && selected ? '<span class="opt-review-status st-correct"><i class="fas fa-check" style="font-size:10px;"></i> 正确</span>' : ''}
+                                ${REVIEW_MODE && isCorrectOpt && !selected ? '<span class="opt-review-status st-missed"><i class="fas fa-bullseye" style="font-size:10px;"></i> 正确项</span>' : ''}
+                                ${REVIEW_MODE && isUserWrong ? '<span class="opt-review-status st-wrong"><i class="fas fa-times" style="font-size:10px;"></i> 你的选择</span>' : ''}
                             </div>`;
                     });
                     html += '</div>';
+
+                    // Sub-question answer summary in review mode
+                    if (REVIEW_MODE) {
+                        const userAns = currentAnswer || '未作答';
+                        let correctAns = sub.correct_answer || '';
+                        // Normalize case type display
+                        if (isCheckbox) {
+                            try { correctAns = JSON.parse(correctAns).join(','); } catch(e) {}
+                            try { const parsed = JSON.parse(userAns); if(Array.isArray(parsed)) { userAns_display = parsed.join(','); } } catch(e) {}
+                        }
+                        html += `<div class="review-answer-summary">
+                            <span><span class="review-label">你的答案：</span><span class="${!currentAnswer ? 'review-miss' : 'review-correct'}">${currentAnswer || '未作答'}</span></span>
+                            <span><span class="review-label">正确答案：</span><span class="review-correct">${correctAns}</span></span>
+                        </div>`;
+                    }
+
                     html += '</div>';
                 }
+            }
+
+            // Explanation in review mode
+            if (REVIEW_MODE && q.explanation) {
+                html += `<div class="review-explanation-box">
+                    <div class="review-exp-title"><i class="fas fa-lightbulb"></i> 解析</div>
+                    <div class="review-exp-content">${q.explanation}</div>
+                </div>`;
             }
 
             panel.innerHTML = html;
@@ -542,7 +699,7 @@
                 await fetch(`/api/exam/${SESSION_ID}/save`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ question_id: questionId, sub_index: subIndex, answer: answer })
+                    body: JSON.stringify({ question_id: questionId, sub_index: subIndex, answer: answer, current_question_index: currentIndex, current_sub_index: currentSubIndex })
                 });
             } catch(e) { console.error('Save failed:', e); }
         }
@@ -563,6 +720,7 @@
 
         function updateMarkButton() {
             const btn = document.getElementById('btn-mark');
+            if (!btn) return;
             if (markedQuestions.has(currentIndex)) {
                 btn.classList.add('marked');
                 btn.title = '取消标记 (M)';
@@ -673,7 +831,7 @@
 
                 items.forEach(({ q, qi }) => {
                     const isCurrent = qi === currentIndex;
-                    const isMarked = markedQuestions.has(qi);
+                    const isMarked = !REVIEW_MODE && markedQuestions.has(qi);
                     let answered = false;
                     let partial = false;
                     let ansText = '';
@@ -701,19 +859,70 @@
                     }
                     if (answered) answeredCount++;
 
+                    // In review mode, determine correct/wrong for the cell
+                    let isCorrect = false;
+                    let isWrong = false;
+                    if (REVIEW_MODE && q.correct_answer) {
+                        if (q.type === 'shared' || q.type === 'case') {
+                            const subs = q.sub_questions || [];
+                            let allCorrect = true;
+                            let anyWrong = false;
+                            subs.forEach((sub, si) => {
+                                const userAns = userAnswers[`${qi}_${si}`] || '';
+                                const correctAns = sub.correct_answer || '';
+                                if (!userAns) { allCorrect = false; }
+                                else if (q.type === 'case') {
+                                    try {
+                                        const userSet = new Set(JSON.parse(userAns).map(x => x.toUpperCase()));
+                                        const correctSet = new Set(JSON.parse(correctAns).map(x => x.toUpperCase()));
+                                        if (userAns && JSON.stringify([...userSet].sort()) !== JSON.stringify([...correctSet].sort())) { allCorrect = false; anyWrong = true; }
+                                    } catch(e) {
+                                        if (userAns.toUpperCase() !== correctAns.toUpperCase()) { allCorrect = false; anyWrong = true; }
+                                    }
+                                } else {
+                                    if (userAns.toUpperCase() !== correctAns.toUpperCase()) { allCorrect = false; anyWrong = true; }
+                                }
+                            });
+                            isCorrect = allCorrect && subs.length > 0;
+                            isWrong = anyWrong;
+                        } else {
+                            const userAns = userAnswers[`${qi}_0`] || '';
+                            if (q.type === 'multiple') {
+                                const userSet = userAns.toUpperCase().replace(/[,，]/g, '');
+                                const correctSet = q.correct_answer.toUpperCase().replace(/[,，]/g, '');
+                                isCorrect = userSet === correctSet;
+                                isWrong = userSet !== correctSet && userAns;
+                            } else {
+                                isCorrect = userAns.toUpperCase() === q.correct_answer.toUpperCase();
+                                isWrong = !isCorrect && userAns;
+                            }
+                        }
+                    }
+
                     let cls = 'ac-cell';
                     if (isCurrent) cls += ' current';
-                    if (answered) cls += ' answered';
-                    else if (partial) cls += ' has-partial';
-                    if (isMarked) cls += ' marked';
+                    if (REVIEW_MODE) {
+                        if (isCorrect) cls += ' ac-review-correct';
+                        else if (isWrong) cls += ' ac-review-wrong';
+                    } else {
+                        if (answered) cls += ' answered';
+                        else if (partial) cls += ' has-partial';
+                        if (isMarked) cls += ' marked';
+                    }
 
                     html += `<div class="${cls}" onclick="goToQuestion(${qi})">`;
                     html += `<span class="ac-num">${qi + 1}</span>`;
-                    if (ansText) {
+                    if (ansText && !REVIEW_MODE) {
                         html += `<span class="ac-ans">${ansText}</span>`;
                     }
+                    // Review mode: show check/cross icon
+                    if (REVIEW_MODE && isCorrect) {
+                        html += `<span class="ac-ans" style="color:#276749;"><i class="fas fa-check"></i></span>`;
+                    } else if (REVIEW_MODE && isWrong) {
+                        html += `<span class="ac-ans" style="color:#9b2c2c;"><i class="fas fa-times"></i></span>`;
+                    }
                     // Sub-question indicator for shared/case
-                    if ((q.type === 'shared' || q.type === 'case') && q.sub_questions && q.sub_questions.length > 1) {
+                    if (!REVIEW_MODE && (q.type === 'shared' || q.type === 'case') && q.sub_questions && q.sub_questions.length > 1) {
                         const subs = q.sub_questions || [];
                         const answeredSubs = subs.filter((_, si) => userAnswers[`${qi}_${si}`]).length;
                         if (answeredSubs > 0 && answeredSubs < subs.length) {
@@ -728,10 +937,12 @@
 
             body.innerHTML = html;
 
-            // Update progress
-            document.getElementById('answered-count').textContent = answeredCount;
-            const pct = TOTAL_QUESTIONS > 0 ? Math.round((answeredCount / TOTAL_QUESTIONS) * 100) : 0;
-            document.getElementById('ac-progress-fill').style.width = pct + '%';
+            // Update progress (only in exam mode)
+            if (!REVIEW_MODE) {
+                document.getElementById('answered-count').textContent = answeredCount;
+                const pct = TOTAL_QUESTIONS > 0 ? Math.round((answeredCount / TOTAL_QUESTIONS) * 100) : 0;
+                document.getElementById('ac-progress-fill').style.width = pct + '%';
+            }
         }
 
         // ============================================================
@@ -837,13 +1048,17 @@
         // Initialize
         // ============================================================
         renderQuestion();
-        startTimer();
+        if (!REVIEW_MODE) {
+            startTimer();
+        }
 
-        // Warn before leaving
-        window.addEventListener('beforeunload', (e) => {
-            e.preventDefault();
-            e.returnValue = '考试正在进行中，确定要离开吗？';
-        });
+        // Warn before leaving (only in exam mode)
+        if (!REVIEW_MODE) {
+            window.addEventListener('beforeunload', (e) => {
+                e.preventDefault();
+                e.returnValue = '考试正在进行中，确定要离开吗？';
+            });
+        }
 
     // Close when clicking outside
     document.addEventListener('click', function(e) {
