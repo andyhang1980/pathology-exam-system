@@ -1653,8 +1653,8 @@ async def import_users_excel(request: Request, file: UploadFile = File(...)):
                 if existing_uname:
                     gen_username = "stu_" + username + "_" + str(row_idx)
                 db.execute(
-                    "INSERT INTO users (username, password, real_name, student_id, login_type, role) VALUES (?, ?, ?, ?, 'student_id', 'student')",
-                    (gen_username, hash_password(password), real_name or username, username)
+                    "INSERT INTO users (username, password, real_name, student_id, login_type, role, plain_password) VALUES (?, ?, ?, ?, 'student_id', 'student', ?)",
+                    (gen_username, hash_password(password), real_name or username, username, password)
                 )
                 imported += 1
             except Exception as e:
