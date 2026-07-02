@@ -286,6 +286,10 @@
         <div id="users-tab" class="tab-content">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">用户管理</h2>
+                <div class="flex gap-2 mb-4">
+                <input type="text" id="u-search" placeholder="搜索用户名/学号/姓名..." class="input-focus flex-1 px-4 py-2 border border-gray-300 rounded-lg" oninput="debounceSearchUsers()">
+                <button class="btn btn-outline text-sm" onclick="searchUsers()"><i class="fas fa-search mr-1"></i>搜索</button>
+            </div>
                 <div class="flex gap-2 items-center">
                     <span id="u-selected-count" class="text-sm text-gray-500" style="display:none">已选 <b>0</b> 项</span>
                     <button id="u-batch-delete-btn" class="btn btn-danger text-sm" style="display:none" onclick="batchDeleteUsers()"><i class="fas fa-trash mr-1"></i>批量删除</button>
@@ -1912,6 +1916,7 @@ Word 中插入的图片会被自动提取为题干中的图片引用。
 
             var accountUsers = _allUsers.filter(function(u) { return u.login_type !== 'student_id'; });
             var studentUsers = _allUsers.filter(function(u) { return u.login_type === 'student_id'; });
+            studentUsers.sort(function(a, b) { var sa = parseInt(a.student_id) || 0, sb = parseInt(b.student_id) || 0; return sa - sb; });
 
             document.getElementById('account-count').textContent = '(' + accountUsers.length + ')';
             document.getElementById('student-count').textContent = '(' + studentUsers.length + ')';
@@ -1930,9 +1935,9 @@ Word 中插入的图片会被自动提取为题干中的图片引用。
 
             var html = '<table class="data-table"><thead><tr><th style="width:36px"><input type="checkbox" id="u-select-all-' + type + '" onchange="toggleAllUsers(this, \''+type+'\')"></th>';
             if (type === 'student') {
-                html += '<th>ID</th><th>学号</th><th>姓名</th><th>考试次数</th><th>平均分</th><th>操作</th>';
+                html += '<th>ID</th><th>学号</th><th>姓名</th><th>密码</th><th>考试次数</th><th>平均分</th><th>操作</th>';
             } else {
-                html += '<th>ID</th><th>用户名</th><th>学号</th><th>姓名</th><th>考试次数</th><th>平均分</th><th>操作</th>';
+                html += '<th>ID</th><th>用户名</th><th>学号</th><th>姓名</th><th>密码</th><th>考试次数</th><th>平均分</th><th>操作</th>';
             }
             html += '</tr></thead><tbody>';
             users.forEach(function(u) {
@@ -1940,9 +1945,9 @@ Word 中插入的图片会被自动提取为题干中的图片引用。
                 var isAdmin = u.role === 'admin';
                 html += '<tr' + (isAdmin ? ' class="bg-yellow-50"' : '') + '><td>' + (isAdmin ? '<i class="fas fa-crown text-yellow-500 text-xs"></i>' : '<input type="checkbox" class="u-checkbox" data-type="' + type + '" value="' + u.id + '" onchange="updateUserSelection()">') + '</td>';
                 if (type === 'student') {
-                    html += '<td>' + u.id + '</td><td><b>' + u.student_id + '</b></td><td>' + (u.real_name || u.username) + '</td>';
+                    html += '<td>' + u.id + '</td><td><b>' + u.student_id + '</b></td><td>' + (u.real_name || u.username) + '</td><td><span class="u-pwd-mask" data-pwd="' + (u.plain_password || '-') + '" style="cursor:pointer">****</span></td>';
                 } else {
-                    html += '<td>' + u.id + '</td><td>' + u.username + '</td><td>' + sid + '</td><td>' + (u.real_name || '-') + '</td>';
+                    html += '<td>' + u.id + '</td><td>' + u.username + '</td><td>' + sid + '</td><td>' + (u.real_name || '-') + '</td><td><span class="u-pwd-mask" data-pwd="' + (u.plain_password || '-') + '" style="cursor:pointer">****</span></td>';
                 }
                 html += '<td>' + u.exam_count + '</td>';
                 html += '<td>' + (u.avg_score ? u.avg_score.toFixed(1) : '-') + '</td>';
@@ -3455,6 +3460,30 @@ async function deleteTextbook(id) {
                 else { alert('删除失败'); }
             } catch(e) { alert('删除失败: ' + e.message); }
         }
+
+    
+        var _searchTimer = null;
+        function debounceSearchUsers() { clearTimeout(_searchTimer); _searchTimer = setTimeout(searchUsers, 400); }
+        async function searchUsers() {
+            var keyword = document.getElementById('u-search').value.trim();
+            var resp = await fetch('/api/admin/users' + (keyword ? '?search=' + encodeURIComponent(keyword) : ''));
+            var data = await resp.json();
+            _allUsers = data.items || [];
+            var accountUsers = _allUsers.filter(function(u) { return u.login_type !== 'student_id'; });
+            var studentUsers = _allUsers.filter(function(u) { return u.login_type === 'student_id'; });
+            studentUsers.sort(function(a, b) { var sa = parseInt(a.student_id) || 0, sb = parseInt(b.student_id) || 0; return sa - sb; });
+            document.getElementById('account-count').textContent = '(' + accountUsers.length + ')';
+            document.getElementById('student-count').textContent = '(' + studentUsers.length + ')';
+            renderUserTable('account', accountUsers);
+            renderUserTable('student', studentUsers);
+        }
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('u-pwd-mask')) {
+                var pwd = e.target.getAttribute('data-pwd');
+                e.target.textContent = e.target.textContent === '****' ? pwd : '****';
+                e.target.style.color = e.target.textContent === '****' ? '' : '#2563eb';
+            }
+        });
 
     </script>
 </body>
