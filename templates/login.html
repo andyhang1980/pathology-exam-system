@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>张老师病理学职称考试模拟系统 - 登录</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js">
+    // Fetch login config and adjust UI
+    async function fetchLoginConfig() {
+        try {
+            const resp = await fetch('/api/site/login-config');
+            const cfg = await resp.json();
+
+            const tabLogin = document.getElementById('tab-login');
+            const tabAccount = document.getElementById('tab-account');
+            const tabRegister = document.getElementById('tab-register');
+            const loginForm = document.getElementById('login-form');
+            const accountForm = document.getElementById('account-form');
+            const registerForm = document.getElementById('register-form');
+
+            // Hide disabled tabs
+            if (!cfg.allow_student_id_login && tabLogin) {
+                tabLogin.style.display = 'none';
+            }
+            if (!cfg.allow_account_login && tabAccount) {
+                tabAccount.style.display = 'none';
+            }
+            if (!cfg.allow_register && tabRegister) {
+                tabRegister.style.display = 'none';
+            }
+
+            // Auto-select first available tab
+            if (cfg.allow_student_id_login) {
+                switchTab('login');
+            } else if (cfg.allow_account_login) {
+                switchTab('account');
+            } else if (cfg.allow_register) {
+                switchTab('register');
+            } else {
+                // All disabled - show message
+                var card = document.querySelector('.login-card') || document.querySelector('[class*="card"]');
+                if (card) {
+                    card.innerHTML = '<div class="text-center py-12"><i class="fas fa-lock text-4xl text-gray-300 mb-4"></i><p class="text-gray-500">登录功能已关闭，请联系管理员</p></div>';
+                }
+            }
+        } catch(e) {
+            console.error('Login config error:', e);
+        }
+    }
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', fetchLoginConfig);
+
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1a4a72 100%); min-height: 100vh; }
+        .login-card { backdrop-filter: blur(10px); background: rgba(255,255,255,0.95); }
+        .input-focus:focus { box-shadow: 0 0 0 3px rgba(45,90,135,0.3); }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    
+        @media (max-width: 480px) {
+            h1 { font-size: 1.5rem !important; }
+            .login-card { padding: 20px !important; margin: 12px !important; }
+        }
+    
+    
+    
+    @media (max-width:768px) {
+    .back-to-top:hover { background:#2563eb; transform:translateY(-2px); }
+    .back-to-top.show { display:flex; }
+
+    
+    /* Mobile App Fullscreen */
+    @media (max-width: 768px) {
+        body { margin: 0 !important; padding: 0 !important; }
+        .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl { max-width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; margin: 0 !important; }
+        .welcome-banner { margin: 0 !important; border-radius: 0 !important; }
+        .col-panel { border-radius: 8px !important; }
+    }
+</style>
+</head>
+<body class="flex items-center justify-center">
+
+    <div class="w-full max-w-md px-4">
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white bg-opacity-20 mb-4">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">张老师病理学职称考试</h1>
+            <p class="text-blue-200 text-sm">张老师病理学职称考试辅导平台系统</p>
+
+        <!-- Login Card -->
+        <div class="login-card rounded-2xl shadow-2xl p-8">
+            <!-- Tabs -->
+            <div class="flex mb-6 border-b">
+                <button id="tab-login" onclick="switchTab('login')" class="flex-1 pb-3 text-center font-semibold text-blue-800 border-b-2 border-blue-800 transition-all">学号登录</button>
+                <button id="tab-account" onclick="switchTab('account')" class="flex-1 pb-3 text-center font-semibold text-gray-400 border-b-2 border-transparent transition-all">账号登录</button>
+                <button id="tab-register" onclick="switchTab('register')" class="flex-1 pb-3 text-center font-semibold text-gray-400 border-b-2 border-transparent transition-all">注册</button>
+            </div>
+
+            <!-- Student ID Login Form -->
+            <form id="login-form" onsubmit="handleLogin(event, 'student_id')">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">学号</label>
+                    <input type="text" id="login-student-id" required
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="请输入学号">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">密码</label>
+                    <input type="password" id="login-sid-password" required
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="请输入密码">
+                </div>
+                <div id="login-error" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg"></div>
+                <button type="submit" id="login-btn"
+                    class="w-full py-3 bg-blue-800 hover:bg-blue-900 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
+                    登 录
+                </button>
+            </form>
+
+            <!-- Account Login Form -->
+            <form id="account-form" class="hidden" onsubmit="handleLogin(event, 'account')">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">用户名</label>
+                    <input type="text" id="login-username" required
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="请输入用户名">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">密码</label>
+                    <input type="password" id="login-password" required
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="请输入密码">
+                </div>
+                <div id="account-error" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg"></div>
+                <button type="submit" id="account-btn"
+                    class="w-full py-3 bg-blue-800 hover:bg-blue-900 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
+                    登 录
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="hidden" onsubmit="handleRegister(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">用户名</label>
+                    <input type="text" id="reg-username" required
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="请输入用户名">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">姓名</label>
+                    <input type="text" id="reg-realname"
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="请输入真实姓名">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">密码</label>
+                    <input type="password" id="reg-password" required minlength="6"
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="至少6位密码">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">确认密码</label>
+                    <input type="password" id="reg-confirm" required
+                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all"
+                        placeholder="再次输入密码">
+                </div>
+                <div id="register-error" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg"></div>
+                <div id="register-success" class="hidden mb-4 p-3 bg-green-50 text-green-600 text-sm rounded-lg"></div>
+                <button type="submit" id="register-btn"
+                    class="w-full py-3 bg-blue-800 hover:bg-blue-900 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
+                    注 册
+                </button>
+            </form>
+            <!-- Admin Login (always visible) -->
+            <div class="mt-4 pt-4 border-t border-gray-200 text-center">
+                <a href="javascript:void(0)" onclick="switchTab('account')" class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                    <i class="fas fa-user-shield mr-1"></i>管理员登录
+                </a>
+            </div>
+        </div>
+
+        <p class="text-center text-blue-300 text-xs mt-6">张老师病理学职称考试模拟系统 v2.0</p>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            const loginForm = document.getElementById('login-form');
+            const accountForm = document.getElementById('account-form');
+            const registerForm = document.getElementById('register-form');
+            const tabLogin = document.getElementById('tab-login');
+            const tabAccount = document.getElementById('tab-account');
+            const tabRegister = document.getElementById('tab-register');
+
+            // Reset all
+            [loginForm, accountForm, registerForm].forEach(f => f && f.classList.add('hidden'));
+            [tabLogin, tabAccount, tabRegister].forEach(t => {
+                t.classList.remove('text-blue-800', 'border-blue-800');
+                t.classList.add('text-gray-400', 'border-transparent');
+            });
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                tabLogin.classList.add('text-blue-800', 'border-blue-800');
+                tabLogin.classList.remove('text-gray-400', 'border-transparent');
+            } else if (tab === 'account') {
+                accountForm.classList.remove('hidden');
+                tabAccount.classList.add('text-blue-800', 'border-blue-800');
+                tabAccount.classList.remove('text-gray-400', 'border-transparent');
+            } else {
+                registerForm.classList.remove('hidden');
+                tabRegister.classList.add('text-blue-800', 'border-blue-800');
+                tabRegister.classList.remove('text-gray-400', 'border-transparent');
+            }
+        }
+
+        async function handleLogin(e, loginType) {
+            e.preventDefault();
+            let username, password, btn, errorDiv;
+
+            if (loginType === 'student_id') {
+                username = document.getElementById('login-student-id').value;
+                password = document.getElementById('login-sid-password').value;
+                btn = document.getElementById('login-btn');
+                errorDiv = document.getElementById('login-error');
+            } else {
+                username = document.getElementById('login-username').value;
+                password = document.getElementById('login-password').value;
+                btn = document.getElementById('account-btn');
+                errorDiv = document.getElementById('account-error');
+            }
+
+            errorDiv.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+
+            try {
+                const resp = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        login_type: loginType
+                    })
+                });
+                const data = await resp.json();
+                if (data.error) {
+                    errorDiv.textContent = data.error;
+                    errorDiv.classList.remove('hidden');
+                } else {
+                    window.location.href = data.role === 'admin' ? '/admin' : '/student';
+                }
+            } catch (err) {
+                errorDiv.textContent = '网络错误，请重试';
+                errorDiv.classList.remove('hidden');
+            }
+            btn.disabled = false;
+            btn.textContent = '登 录';
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('register-btn');
+            const errorDiv = document.getElementById('register-error');
+            const successDiv = document.getElementById('register-success');
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+
+            const password = document.getElementById('reg-password').value;
+            const confirm = document.getElementById('reg-confirm').value;
+            if (password !== confirm) {
+                errorDiv.textContent = '两次密码不一致';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+
+            try {
+                const resp = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: document.getElementById('reg-username').value,
+                        password: password,
+                        real_name: document.getElementById('reg-realname').value,
+                    })
+                });
+                const data = await resp.json();
+                if (data.error) {
+                    errorDiv.textContent = data.error;
+                    errorDiv.classList.remove('hidden');
+                } else {
+                    successDiv.textContent = '注册成功！请登录';
+                    successDiv.classList.remove('hidden');
+                    setTimeout(() => switchTab('login'), 1500);
+                }
+            } catch (err) {
+                errorDiv.textContent = '网络错误，请重试';
+                errorDiv.classList.remove('hidden');
+            }
+            btn.disabled = false;
+            btn.textContent = '注 册';
+        }
+    
+    // Close when clicking outside
+    document.addEventListener('click', function(e) {
+    });
+
+    
+    // Back to Top
+    (function() {
+        var btn = document.getElementById('back-to-top');
+        if (!btn) return;
+        window.addEventListener('scroll', function() {
+            btn.classList.toggle('show', window.scrollY > 300);
+        });
+    })();
+
+    </script>
+
+
+
+    <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fas fa-arrow-up"></i></button>
+
+    
+    <!-- Ad Image Lightbox -->
+    <script>
+    </script>
+
+<script src="/static/js/pull_refresh.js"></script>
+<script src="/static/js/anti_copy.js"></script>
+</body>
+</html>
