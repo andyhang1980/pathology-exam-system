@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考试结果 - 张老师病理学职称考试模拟系统</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; }
+
+        /* Score Circle */
+        .score-circle { width: 150px; height: 150px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 6px solid; }
+        .score-passed { border-color: #48bb78; color: #276749; background: #f0fff4; }
+        .score-failed { border-color: #f56565; color: #9b2c2c; background: #fff5f5; }
+
+        /* Stats bar */
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; }
+        .stat-pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .stat-pill i { font-size: 12px; }
+        .stat-correct { background: #f0fff4; color: #276749; border: 1px solid #c6f6d5; }
+        .stat-wrong { background: #fff5f5; color: #9b2c2c; border: 1px solid #fed7d7; }
+        .stat-unanswered { background: #f7fafc; color: #718096; border: 1px solid #e2e8f0; }
+        .stat-rate { background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; }
+
+        /* Filter tabs */
+        .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+        .filter-tab { padding: 6px 16px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: white; cursor: pointer; font-size: 13px; font-weight: 500; color: #4a5568; transition: all 0.2s; }
+        .filter-tab:hover { border-color: #90cdf4; background: #ebf8ff; }
+        .filter-tab.active { background: #3182ce; color: white; border-color: #3182ce; }
+
+        /* Result card */
+        .result-card { transition: all 0.2s; border-radius: 12px; overflow: hidden; }
+        .result-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .result-card.card-correct { border-left: 4px solid #48bb78; }
+        .result-card.card-wrong { border-left: 4px solid #f56565; }
+        .result-card.card-unanswered { border-left: 4px solid #cbd5e0; }
+
+        /* Option display in result */
+        .res-option { display: flex; align-items: flex-start; padding: 10px 14px; margin-bottom: 6px; border-radius: 8px; border: 2px solid #edf2f7; transition: all 0.15s; background: white; }
+        .res-option .opt-label { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; margin-right: 12px; flex-shrink: 0; background: #edf2f7; color: #4a5568; }
+        .res-option .opt-text { font-size: 14px; line-height: 1.7; color: #2d3748; padding-top: 2px; }
+
+        /* Correct option: green */
+        .res-option.opt-correct { border-color: #48bb78; background: #f0fff4; }
+        .res-option.opt-correct .opt-label { background: #48bb78; color: white; }
+        .res-option.opt-correct .opt-text { color: #276749; font-weight: 500; }
+
+        /* User's wrong choice: red */
+        .res-option.opt-user-wrong { border-color: #f56565; background: #fff5f5; }
+        .res-option.opt-user-wrong .opt-label { background: #f56565; color: white; }
+        .res-option.opt-user-wrong .opt-text { color: #9b2c2c; font-weight: 500; }
+
+        /* User correct choice: has both green indicators */
+        .res-option.opt-correct.opt-user-correct { border-color: #38a169; background: #c6f6d5; }
+        .res-option.opt-correct.opt-user-correct .opt-label { background: #38a169; color: white; }
+
+        /* Multi-select: user partially correct on a correct option */
+        .res-option.opt-correct.opt-user-picked { border-color: #38a169; background: #c6f6d5; }
+        .res-option.opt-correct.opt-user-picked .opt-label { background: #38a169; color: white; }
+
+        /* Multi-select: user picked wrong option */
+        .res-option.opt-user-wrong.opt-user-picked { border-color: #e53e3e; background: #fed7d7; }
+        .res-option.opt-user-wrong.opt-user-picked .opt-label { background: #e53e3e; color: white; }
+
+        /* Status tags on options */
+        .opt-status { margin-left: auto; font-size: 12px; font-weight: 600; white-space: nowrap; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+        .opt-status.st-correct { background: #c6f6d5; color: #276749; }
+        .opt-status.st-wrong { background: #fed7d7; color: #9b2c2c; }
+        .opt-status.st-missed { background: #fef3c7; color: #92400e; }
+
+        /* Explanation */
+        .explanation-box { background: linear-gradient(135deg, #ebf8ff 0%, #e9d8fd 100%); border-radius: 10px; padding: 16px 20px; margin-top: 16px; border-left: 4px solid #4299e1; }
+        .explanation-box .exp-title { font-size: 13px; font-weight: 700; color: #2b6cb0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .explanation-box .exp-content { font-size: 14px; line-height: 1.8; color: #2d3748; }
+
+        /* Sub-question */
+        .sub-q-box { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-top: 12px; }
+        .sub-q-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .sub-q-badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 4px; }
+        .sub-q-correct { background: #c6f6d5; color: #276749; }
+        .sub-q-wrong { background: #fed7d7; color: #9b2c2c; }
+        .sub-q-unanswered { background: #e2e8f0; color: #718096; }
+
+        /* Card header badges */
+        .card-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+        .badge-correct { background: #c6f6d5; color: #276749; }
+        .badge-wrong { background: #fed7d7; color: #9b2c2c; }
+        .badge-unanswered { background: #e2e8f0; color: #718096; }
+        .badge-type { background: #edf2f7; color: #4a5568; }
+
+        /* Answer summary line */
+        .ans-summary { display: flex; align-items: center; gap: 12px; font-size: 13px; margin-bottom: 12px; padding: 8px 12px; background: #f7fafc; border-radius: 8px; flex-wrap: wrap; }
+        .ans-summary .ans-label { color: #718096; }
+        .ans-summary .ans-value { font-weight: 600; }
+        .ans-value.val-correct { color: #276749; }
+        .ans-value.val-wrong { color: #c53030; }
+        .ans-value.val-miss { color: #92400e; }
+
+    /* Ad image lightbox */
+
+
+        /* Back to Top */
+        .back-to-top { position:fixed; bottom:20px; right:20px; z-index:200; width:42px; height:42px; border-radius:50%; background:#3b82f6; color:white; border:none; cursor:pointer; font-size:18px; display:none; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(59,130,246,0.4); transition:opacity 0.3s, transform 0.2s; }
+        .back-to-top:hover { background:#2563eb; transform:translateY(-2px); }
+        .back-to-top.show { display:flex; }
+
+        @media (max-width: 768px) {
+            .score-circle { width: 110px; height: 110px; }
+            .result-card { padding: 12px !important; }
+            nav .max-w-5xl { padding-left: 12px !important; padding-right: 12px !important; }
+            .stats-bar { gap: 8px; }
+            .stat-pill { padding: 4px 10px; font-size: 12px; }
+        }
+        @media (max-width: 480px) {
+            .score-circle { width: 90px; height: 90px; font-size: 1.5rem !important; }
+            .res-option { padding: 8px 10px; }
+            .res-option .opt-text { font-size: 13px; }
+        }
+    
+    /* Mobile App Fullscreen */
+    @media (max-width: 768px) {
+        body { margin: 0 !important; padding: 0 !important; }
+        .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl { max-width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; margin: 0 !important; }
+        .welcome-banner { margin: 0 !important; border-radius: 0 !important; }
+        .col-panel { border-radius: 8px !important; }
+    }
+</style>
+</head>
+<body>
+
+    <!-- Header -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-blue-800 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-medical text-white text-lg"></i>
+                </div>
+                <h1 class="text-lg font-bold text-gray-800">张老师病理学职称考试模拟系统</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600"><i class="fas fa-user mr-1"></i>{{ user.real_name }}</span>
+                <a href="/student" class="text-sm text-blue-600 hover:text-blue-800"><i class="fas fa-arrow-left mr-1"></i>返回</a>
+                <a href="/logout" class="text-sm text-gray-400 hover:text-red-500"><i class="fas fa-sign-out-alt mr-1"></i>退出</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto px-4 py-8">
+
+        <!-- Score Card -->
+        <div class="bg-white rounded-2xl shadow-sm border p-8 mb-6">
+            <div class="flex items-center justify-center flex-wrap gap-8">
+                <div class="text-center">
+                    {% set passed = session.total_score >= session.pass_score %}
+                    <div class="score-circle {% if passed %}score-passed{% else %}score-failed{% endif %}">
+                        <div class="text-4xl font-bold">{{ "%.1f"|format(session.total_score) }}</div>
+                        <div class="text-sm">分</div>
+                    </div>
+                    <div class="mt-3 text-lg font-bold {% if passed %}text-green-600{% else %}text-red-500{% endif %}">
+                        {% if passed %}
+                        <i class="fas fa-check-circle mr-1"></i>通过
+                        {% else %}
+                        <i class="fas fa-times-circle mr-1"></i>未通过
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
+                    <div>
+                        <div class="text-gray-500">考试名称</div>
+                        <div class="font-semibold text-gray-800">{{ session.title }}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-500">满分 / 合格线</div>
+                        <div class="font-semibold text-gray-800">{{ session.total_score_max if session.total_score_max else 100 }} / {{ session.pass_score }} 分</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-500">开始时间</div>
+                        <div class="font-semibold text-gray-800">{{ session.start_time[:19] }}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-500">交卷时间</div>
+                        <div class="font-semibold text-gray-800">{{ session.end_time[:19] if session.end_time else '-' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            {% set total_q = results|length %}
+            {% set correct_q = results|selectattr('is_correct')|list|length %}
+            {% set wrong_q = total_q - correct_q %}
+            {% set unanswered_q = results|rejectattr('user_answers')|list|length %}
+            <div class="stats-bar mt-6 justify-center">
+                <div class="stat-pill stat-correct"><i class="fas fa-check-circle"></i> 正确 {{ correct_q }} 题</div>
+                <div class="stat-pill stat-wrong"><i class="fas fa-times-circle"></i> 错误 {{ wrong_q }} 题</div>
+                <div class="stat-pill stat-rate"><i class="fas fa-percentage"></i> 正确率 {{ "%.0f"|format((correct_q / total_q * 100) if total_q > 0 else 0) }}%</div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterCards('all', this)">全部 ({{ total_q }})</button>
+            <button class="filter-tab" onclick="filterCards('wrong', this)">错题 ({{ wrong_q }})</button>
+            <button class="filter-tab" onclick="filterCards('correct', this)">正确 ({{ correct_q }})</button>
+        </div>
+
+        <!-- Answer Details -->
+        <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-list-check mr-2 text-blue-800"></i>答题详情</h3>
+
+        {% for r in results %}
+        {% if r.type in ['shared', 'case'] and r.sub_questions %}
+            <!-- Shared/Case type: each sub-question is a card -->
+            {% for sub in r.sub_questions %}
+            {% set si = loop.index0 %}
+            {% set user_ans = r.user_answers.get(si|string, '') %}
+            {% set correct_ans = sub.answer|default('') %}
+            {% set is_sub_correct = (user_ans|upper == correct_ans|upper) if user_ans else false %}
+            {% if r.type == 'case' %}
+                {% set is_sub_correct = is_sub_correct and user_ans %}
+            {% endif %}
+
+            <div class="result-card bg-white shadow-sm border p-6 mb-4
+                {% if not user_ans %}card-unanswered{% elif is_sub_correct %}card-correct{% else %}card-wrong{% endif %}"
+                data-status="{% if not user_ans %}unanswered{% elif is_sub_correct %}correct{% else %}wrong{% endif %}">
+
+                <!-- Card Header -->
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-bold text-gray-400">第 {{ r.display_order }} 题</span>
+                        {% set type_labels = {'single': '单选', 'multiple': '多选', 'shared': '共用题干', 'case': '案例分析'} %}
+                        <span class="card-badge badge-type">{{ type_labels.get(r.type, r.type) }}</span>
+                        <span class="text-xs text-gray-400">提问 {{ si + 1 }}</span>
+                        {% if not user_ans %}
+                        <span class="card-badge badge-unanswered">未作答</span>
+                        {% elif is_sub_correct %}
+                        <span class="card-badge badge-correct"><i class="fas fa-check" style="font-size:10px;margin-right:2px;"></i>正确</span>
+                        {% else %}
+                        <span class="card-badge badge-wrong"><i class="fas fa-times" style="font-size:10px;margin-right:2px;"></i>错误</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-sm font-semibold whitespace-nowrap ml-2
+                        {% if is_sub_correct and user_ans %}text-green-600{% else %}text-red-500{% endif %}">
+                        {% set sub_score = 1.0 %}
+                        {% if is_sub_correct and user_ans %}
+                            {{ "%.1f"|format(sub_score) }}
+                        {% else %}
+                            0
+                        {% endif %}
+                        / {{ "%.1f"|format(sub_score) }} 分
+                    </span>
+                </div>
+
+                <!-- Question stem (only show on first sub-question) -->
+                {% if si == 0 %}
+                <div class="text-sm text-gray-800 mb-4 whitespace-pre-wrap leading-relaxed">{{ r.content }}</div>
+                {% endif %}
+
+                <!-- Sub-question content -->
+                <div class="sub-q-box">
+                    <div class="text-sm font-semibold text-gray-700 mb-3">提问 {{ si + 1 }}：{{ sub.content }}</div>
+
+                    <!-- Answer summary -->
+                    <div class="ans-summary">
+                        <span><span class="ans-label">你的答案：</span>
+                            <span class="ans-value {% if not user_ans %}val-miss{% elif is_sub_correct %}val-correct{% else %}val-wrong{% endif %}">
+                                {% if user_ans %}{{ user_ans }}{% else %}未作答{% endif %}
+                            </span>
+                        </span>
+                        <span><span class="ans-label">正确答案：</span>
+                            <span class="ans-value val-correct">{{ correct_ans }}</span>
+                        </span>
+                    </div>
+
+                    <!-- Options -->
+                    {% if sub.options %}
+                    <div class="space-y-1">
+                        {% for opt in sub.options %}
+                        {% set is_correct_opt = (opt.label|upper in correct_ans|upper) %}
+                        {% set is_user_pick = false %}
+                        {% if r.type == 'case' %}
+                            {% set user_norm = user_ans.replace('"','').replace('[','').replace(']','').replace(' ','') if user_ans else '' %}
+                            {% set is_user_pick = (opt.label|upper in user_norm|upper) if user_ans else false %}
+                        {% else %}
+                            {% set is_user_pick = (opt.label|upper == user_ans|upper) if user_ans else false %}
+                        {% endif %}
+
+                        <div class="res-option
+                            {% if is_correct_opt and is_user_pick %}opt-correct opt-user-picked
+                            {% elif is_correct_opt %}opt-correct
+                            {% elif is_user_pick %}opt-user-wrong opt-user-picked
+                            {% endif %}">
+                            <div class="opt-label">{{ opt.label }}</div>
+                            <div class="opt-text">{{ opt.text }}</div>
+                            {% if is_correct_opt and is_user_pick %}
+                                <span class="opt-status st-correct"><i class="fas fa-check" style="font-size:10px;"></i> 正确</span>
+                            {% elif is_correct_opt %}
+                                <span class="opt-status st-missed"><i class="fas fa-bullseye" style="font-size:10px;"></i> 正确项</span>
+                            {% elif is_user_pick %}
+                                <span class="opt-status st-wrong"><i class="fas fa-times" style="font-size:10px;"></i> 你的选择</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Explanation (show on last sub or if all subs share same explanation) -->
+                {% if r.explanation and si == r.sub_questions|length - 1 %}
+                <div class="explanation-box">
+                    <div class="exp-title"><i class="fas fa-lightbulb"></i> 解析</div>
+                    <div class="exp-content">{{ r.explanation }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+        {% else %}
+            <!-- Single/Multiple choice type -->
+            {% set user_ans = r.user_answers.get('0', '') %}
+            {% set correct_ans = r.correct_answer|default('') %}
+
+            <div class="result-card bg-white shadow-sm border p-6 mb-4
+                {% if not user_ans %}card-unanswered{% elif r.is_correct %}card-correct{% else %}card-wrong{% endif %}"
+                data-status="{% if not user_ans %}unanswered{% elif r.is_correct %}correct{% else %}wrong{% endif %}">
+
+                <!-- Card Header -->
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-bold text-gray-400">第 {{ r.display_order }} 题</span>
+                        {% set type_labels = {'single': '单选', 'multiple': '多选', 'shared': '共用题干', 'case': '案例分析'} %}
+                        <span class="card-badge badge-type">{{ type_labels.get(r.type, r.type) }}</span>
+                        {% if not user_ans %}
+                        <span class="card-badge badge-unanswered">未作答</span>
+                        {% elif r.is_correct %}
+                        <span class="card-badge badge-correct"><i class="fas fa-check" style="font-size:10px;margin-right:2px;"></i>正确</span>
+                        {% else %}
+                        <span class="card-badge badge-wrong"><i class="fas fa-times" style="font-size:10px;margin-right:2px;"></i>错误</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-sm font-semibold whitespace-nowrap ml-2
+                        {% if r.earned_score > 0 %}text-green-600{% else %}text-red-500{% endif %}">
+                        {{ "%.1f"|format(r.earned_score) }} / {{ "%.1f"|format(r.score) }} 分
+                    </span>
+                </div>
+
+                <!-- Question content -->
+                <div class="text-sm text-gray-800 mb-4 whitespace-pre-wrap leading-relaxed">{{ r.content }}</div>
+
+                <!-- Answer summary -->
+                <div class="ans-summary">
+                    <span><span class="ans-label">你的答案：</span>
+                        <span class="ans-value {% if not user_ans %}val-miss{% elif r.is_correct %}val-correct{% else %}val-wrong{% endif %}">
+                            {% if user_ans %}{{ user_ans }}{% else %}未作答{% endif %}
+                        </span>
+                    </span>
+                    <span><span class="ans-label">正确答案：</span>
+                        <span class="ans-value val-correct">{{ correct_ans }}</span>
+                    </span>
+                </div>
+
+                <!-- Options with visual indicators -->
+                {% if r.options %}
+                <div class="space-y-1">
+                    {% for opt in r.options %}
+                    {% set is_correct_opt = (opt.label|upper in correct_ans|upper) %}
+                    {% if r.type == 'multiple' %}
+                        {% set user_set = user_ans.upper().replace(',', '').replace('，', '') if user_ans else '' %}
+                        {% set is_user_pick = (opt.label|upper in user_set) %}
+                    {% else %}
+                        {% set is_user_pick = (opt.label|upper == user_ans|upper) if user_ans else false %}
+                    {% endif %}
+
+                    <div class="res-option
+                        {% if is_correct_opt and is_user_pick %}opt-correct opt-user-picked
+                        {% elif is_correct_opt %}opt-correct
+                        {% elif is_user_pick %}opt-user-wrong opt-user-picked
+                        {% endif %}">
+                        <div class="opt-label">{{ opt.label }}</div>
+                        <div class="opt-text">{{ opt.text }}</div>
+                        {% if is_correct_opt and is_user_pick %}
+                            <span class="opt-status st-correct"><i class="fas fa-check" style="font-size:10px;"></i> 正确</span>
+                        {% elif is_correct_opt %}
+                            <span class="opt-status st-missed"><i class="fas fa-bullseye" style="font-size:10px;"></i> 正确项</span>
+                        {% elif is_user_pick %}
+                            <span class="opt-status st-wrong"><i class="fas fa-times" style="font-size:10px;"></i> 你的选择</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Explanation -->
+                {% if r.explanation %}
+                <div class="explanation-box">
+                    <div class="exp-title"><i class="fas fa-lightbulb"></i> 解析</div>
+                    <div class="exp-content">{{ r.explanation }}</div>
+                </div>
+                {% endif %}
+            </div>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Actions -->
+        <div class="text-center mt-8 mb-4">
+            <a href="/student" class="inline-block px-8 py-3 bg-blue-800 text-white rounded-lg font-semibold hover:bg-blue-900 transition-all">
+                <i class="fas fa-arrow-left mr-2"></i>返回考生中心
+            </a>
+        </div>
+    </div>
+
+
+
+    <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fas fa-arrow-up"></i></button>
+
+    <script>
+    document.addEventListener('click', function(e) {
+    });
+
+    // Filter cards by status
+    function filterCards(status, btn) {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.result-card').forEach(card => {
+            if (status === 'all') {
+                card.style.display = '';
+            } else {
+                card.style.display = card.dataset.status === status ? '' : 'none';
+            }
+        });
+    }
+
+    // Back to top
+    window.addEventListener('scroll', function() {
+        var btn = document.getElementById('back-to-top');
+        btn.classList.toggle('show', window.scrollY > 400);
+    });
+    </script>
+
+
+    <!-- Ad Image Lightbox -->
+    <script>
+    </script>
+
+<script src="/static/js/pull_refresh.js"></script>
+<script src="/static/js/anti_copy.js"></script>
+</body>
+</html>
