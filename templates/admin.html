@@ -1,0 +1,3461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 张老师病理学职称考试模拟系统</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; }
+        .admin-layout { display: flex; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; max-width: 1400px; margin: 0 auto; box-shadow: 0 0 30px rgba(0,0,0,0.08); }
+        .sidebar { width: 240px; min-width: 240px; background: #1a202c; min-height: 100vh; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 40; }
+        .sidebar a { display: flex; align-items: center; padding: 12px 20px; color: #a0aec0; font-size: 14px; transition: all 0.2s; border-left: 3px solid transparent; }
+        .sidebar a:hover, .sidebar a.active { background: #2d3748; color: white; border-left-color: #4299e1; }
+        .main-content { flex: 1; padding: 24px; min-height: 100vh; position: relative; z-index: 1; min-width: 0; }
+        .tab-content > div { max-width: 900px !important; margin-left: auto !important; margin-right: auto !important; }
+        .tab-content > h2 { max-width: 900px !important; margin-left: auto !important; margin-right: auto !important; }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { background: #f7fafc; padding: 10px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #718096; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+        .data-table td { padding: 12px 16px; border-bottom: 1px solid #edf2f7; font-size: 14px; color: #4a5568; }
+        .data-table tr:hover td { background: #f7fafc; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: white; border-radius: 12px; padding: 24px; max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .form-input { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+        .form-input:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.2); }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: #3182ce; color: white; }
+        .btn-primary:hover { background: #2c5282; }
+        .btn-success { background: #38a169; color: white; }
+        .btn-success:hover { background: #276749; }
+        .btn-danger { background: #e53e3e; color: white; }
+        .btn-danger:hover { background: #c53030; }
+        .btn-outline { background: white; color: #4a5568; border: 1px solid #e2e8f0; }
+        .btn-outline:hover { background: #f7fafc; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-single { background: #dbeafe; color: #1e40af; }
+        .badge-multiple { background: #fef3c7; color: #92400e; }
+        .badge-shared { background: #d1fae5; color: #065f46; }
+        .badge-case { background: #ede9fe; color: #5b21b6; }
+        .option-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+        .option-row input { flex: 1; }
+        .sub-question-block { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+
+        /* Import tabs */
+        .import-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+        .import-tab { padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #718096; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+        .import-tab:hover { color: #3182ce; }
+        .import-tab.active { color: #3182ce; border-bottom-color: #3182ce; font-weight: 600; }
+        .import-panel { display: none; }
+        .import-panel.active { display: block; }
+
+        /* Status badges */
+        .badge-active { background: #c6f6d5; color: #22543d; }
+        .badge-draft { background: #fed7d7; color: #82272e; }
+
+        /* Image upload area */
+        .img-upload-area { border: 2px dashed #cbd5e0; border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f7fafc; }
+        .img-upload-area:hover { border-color: #4299e1; background: #ebf8ff; }
+        .img-preview-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .img-preview-item { position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .img-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .img-preview-item .img-remove { position: absolute; top: 2px; right: 2px; background: rgba(229,62,62,0.9); color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* Random select panel */
+        .random-panel { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 16px; margin-top: 12px; }
+        .random-panel label { font-size: 13px; color: #4a5568; }
+
+        /* Format guide */
+        .format-guide { background: #fffff0; border: 1px solid #fefcbf; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .format-guide h4 { font-size: 14px; font-weight: 600; color: #744210; margin-bottom: 8px; }
+        .format-guide pre { font-size: 12px; color: #5a4a00; line-height: 1.6; white-space: pre-wrap; }
+
+        /* Toggle button */
+        .btn-toggle-publish { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-toggle-publish.publish { background: #c6f6d5; color: #22543d; }
+        .btn-toggle-publish.publish:hover { background: #9ae6b4; }
+        .btn-toggle-publish.unpublish { background: #fed7d7; color: #82272e; }
+        .btn-toggle-publish.unpublish:hover { background: #feb2b2; }
+    
+        /* Mobile hamburger button */
+        .mobile-menu-btn { display: none; position: fixed; top: 12px; left: 12px; z-index: 60; background: #1a202c; color: white; border: none; border-radius: 8px; width: 40px; height: 40px; font-size: 18px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 35; }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+            .admin-layout { max-width: 100% !important; }
+            .sidebar { position: fixed; left: -260px; top: 0; z-index: 50; transition: left 0.3s ease; width: 250px; min-width: 250px; box-shadow: 4px 0 20px rgba(0,0,0,0.3); }
+            .sidebar.open { left: 0; }
+            .sidebar-overlay.open { display: block; }
+            .main-content { padding: 60px 12px 16px 12px; }
+            .stat-card { padding: 14px; }
+            .grid-cols-4, .lg\:grid-cols-4, .md\:grid-cols-2 { grid-template-columns: 1fr !important; }
+            .data-table { font-size: 12px; }
+            .data-table th, .data-table td { padding: 8px 6px; }
+            .modal-box { width: 98%; padding: 16px; margin: 8px; }
+            .btn { padding: 6px 12px; font-size: 13px; }
+            .form-input { font-size: 14px; }
+            h2 { font-size: 1.25rem !important; }
+            .tab-content > div > .grid { gap: 12px !important; }
+        }
+        @media (max-width: 480px) {
+            .main-content { padding: 56px 8px 12px 8px; }
+            .stat-card { padding: 10px; }
+            .data-table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
+    
+    
+    /* Mobile App Fullscreen */
+    @media (max-width: 768px) {
+        body { margin: 0 !important; padding: 0 !important; }
+        .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl { max-width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; margin: 0 !important; }
+        .welcome-banner { margin: 0 !important; border-radius: 0 !important; }
+        .col-panel { border-radius: 8px !important; }
+    }
+</style>
+</head>
+<body>
+    <!-- Admin Layout -->
+    <div class="admin-layout">
+    <button class="mobile-menu-btn" onclick="toggleSidebar()" id="mobile-menu-btn"><i class="fas fa-bars"></i></button>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="p-5 border-b border-gray-700">
+            <h1 class="text-white font-bold text-lg">张老师病理学考试系统</h1>
+            <p class="text-gray-500 text-xs mt-1">管理后台</p>
+        </div>
+        <nav class="mt-4">
+            <a href="#" class="active" onclick="switchTab('dashboard-tab', this)"><i class="fas fa-chart-pie mr-3"></i>数据概览</a>
+            <a href="#" onclick="switchTab('questions-tab', this); loadQuestions()"><i class="fas fa-question-circle mr-3"></i>试题管理</a>
+            <a href="#" onclick="switchTab('exams-tab', this); loadExams()"><i class="fas fa-file-alt mr-3"></i>考试管理</a>
+            <a href="#" onclick="switchTab('users-tab', this); loadUsers()"><i class="fas fa-users mr-3"></i>用户管理</a>
+            <a href="#" onclick="switchTab('import-tab', this)"><i class="fas fa-file-import mr-3"></i>试题导入</a>
+            <a href="#" onclick="switchTab('blog-tab', this); loadBlogPosts()"><i class="fas fa-blog mr-3"></i>博客管理</a>
+            <a href="#" onclick="switchTab('ai-tab', this); loadAISettings()"><i class="fas fa-robot mr-3"></i>AI出题</a>
+            <a href="#" onclick="switchTab('ai-settings-tab', this); loadAISettingsForm()"><i class="fas fa-cog mr-3"></i>AI设置</a>
+            <a href="#" onclick="switchTab('ads-tab', this); loadAds()"><i class="fas fa-images mr-3"></i>广告管理</a>
+            <a href="#" onclick="switchTab('site-settings-tab', this); loadSiteSettings()"><i class="fas fa-shield-alt mr-3"></i>系统设置</a>
+        </nav>
+        <div class="absolute bottom-0 w-full p-4 border-t border-gray-700">
+            <a href="/logout" class="text-gray-500 hover:text-white text-sm"><i class="fas fa-sign-out-alt mr-2"></i>退出登录</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content active">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">数据概览</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">考生人数</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ stats.user_count }}</p>
+                        </div>
+                        <div class="stat-icon bg-blue-100 text-blue-600"><i class="fas fa-users"></i></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">试题总数</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ stats.question_count }}</p>
+                        </div>
+                        <div class="stat-icon bg-green-100 text-green-600"><i class="fas fa-database"></i></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">考试场次</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ stats.session_count }}</p>
+                        </div>
+                        <div class="stat-icon bg-purple-100 text-purple-600"><i class="fas fa-clipboard-check"></i></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">平均得分</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ "%.1f"|format(stats.avg_score) }}</p>
+                        </div>
+                        <div class="stat-icon bg-orange-100 text-orange-600"><i class="fas fa-chart-line"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Sessions -->
+            <div class="bg-white rounded-xl border p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">最近考试记录</h3>
+                {% if recent_sessions %}
+                <table class="data-table">
+                    <thead><tr><th>考生</th><th>考试</th><th>得分</th><th>时间</th></tr></thead>
+                    <tbody>
+                    {% for s in recent_sessions %}
+                    <tr>
+                        <td>{{ s.real_name or s.username }}</td>
+                        <td>{{ s.exam_title }}</td>
+                        <td><strong>{{ "%.1f"|format(s.total_score) }}</strong></td>
+                        <td>{{ s.end_time[:16] if s.end_time else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-gray-400 text-center py-8">暂无考试记录</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Questions Tab -->
+        <div id="questions-tab" class="tab-content">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">试题管理</h2>
+                <div class="flex gap-2 items-center">
+                    <span id="q-selected-count" class="text-sm text-gray-500" style="display:none">已选 <b>0</b> 项</span>
+                    <button id="q-batch-delete-btn" class="btn btn-danger text-sm" style="display:none" onclick="batchDeleteQuestions()"><i class="fas fa-trash mr-1"></i>批量删除</button>
+                    <button class="btn btn-primary" onclick="showAddQuestion()"><i class="fas fa-plus"></i> 添加试题</button>
+                </div>
+            </div>
+            <div class="flex gap-2 mb-4 flex-wrap items-center">
+                <button class="btn btn-outline q-filter active" data-type="" onclick="filterQuestions('')">全部</button>
+                <button class="btn btn-outline q-filter" data-type="single" onclick="filterQuestions('single')">单选</button>
+                <button class="btn btn-outline q-filter" data-type="multiple" onclick="filterQuestions('multiple')">多选</button>
+                <button class="btn btn-outline q-filter" data-type="shared" onclick="filterQuestions('shared')">共用题干</button>
+                <button class="btn btn-outline q-filter" data-type="case" onclick="filterQuestions('case')">案例分析</button>
+                <span class="text-gray-300 mx-1">|</span>
+                <select id="category-filter" class="form-input text-sm" style="width:auto" onchange="loadQuestions()">
+                    <option value="">全部分类</option>
+                    <optgroup label="总论">
+                        <option value="总论">总论（全部）</option>
+                        <option value="总论-细胞适应与损伤">细胞适应与损伤</option>
+                        <option value="总论-损伤修复">损伤修复</option>
+                        <option value="总论-血液循环障碍">血液循环障碍</option>
+                        <option value="总论-炎症">炎症</option>
+                        <option value="总论-肿瘤">肿瘤</option>
+                        <option value="总论-免疫病理">免疫病理</option>
+                        <option value="总论-遗传性疾病">遗传性疾病</option>
+                        <option value="总论-其他">其他</option>
+                    </optgroup>
+                    <optgroup label="各论">
+                        <option value="各论">各论（全部）</option>
+                        <option value="各论-心血管系统">心血管系统</option>
+                        <option value="各论-呼吸及胸腔系统">呼吸及胸腔系统</option>
+                        <option value="各论-消化系统">消化系统</option>
+                        <option value="各论-泌尿和男性生殖系统">泌尿和男性生殖系统</option>
+                        <option value="各论-淋巴造血系统">淋巴造血系统</option>
+                        <option value="各论-内分泌和神经内分泌系统">内分泌和神经内分泌系统</option>
+                        <option value="各论-神经系统">神经系统</option>
+                        <option value="各论-女性生殖系统">女性生殖系统</option>
+                        <option value="各论-骨与关节">骨与关节</option>
+                        <option value="各论-皮肤与软组织">皮肤与软组织</option>
+                        <option value="各论-头颈部">头颈部</option>
+                        <option value="各论-传染病与寄生虫">传染病与寄生虫</option>
+                        <option value="各论-病理学技术">病理学技术</option>
+                        <option value="各论-其他">其他</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="bg-white rounded-xl border" id="questions-list">
+                <p class="text-gray-400 text-center py-8">加载中...</p>
+            </div>
+        </div>
+
+        <!-- Exams Tab -->
+        <div id="exams-tab" class="tab-content">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">考试管理</h2>
+                <div class="flex gap-2 items-center">
+                    <span id="e-selected-count" class="text-sm text-gray-500" style="display:none">已选 <b>0</b> 项</span>
+                    <button id="e-batch-delete-btn" class="btn btn-danger text-sm" style="display:none" onclick="batchDeleteExams()"><i class="fas fa-trash mr-1"></i>批量删除</button>
+                    <button class="btn btn-primary" onclick="showAddExam()"><i class="fas fa-plus"></i> 创建考试</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border" id="exams-list">
+                <p class="text-gray-400 text-center py-8">加载中...</p>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">用户管理</h2>
+                <div class="flex gap-2 items-center">
+                    <span id="u-selected-count" class="text-sm text-gray-500" style="display:none">已选 <b>0</b> 项</span>
+                    <button id="u-batch-delete-btn" class="btn btn-danger text-sm" style="display:none" onclick="batchDeleteUsers()"><i class="fas fa-trash mr-1"></i>批量删除</button>
+                    <button class="btn btn-primary" onclick="showAddUser('account')"><i class="fas fa-user-plus mr-1"></i> 账号添加</button>
+                    <button class="btn btn-success" onclick="showAddUser('student_id')"><i class="fas fa-id-card mr-1"></i> 学号添加</button>
+                </div>
+            </div>
+            <div id="user-import-msg" style="display:none" class="mb-4"></div>
+
+            <!-- Two-section user list -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <button id="user-tab-account" class="btn btn-primary" onclick="switchUserTab('account')" style="flex:1;"><i class="fas fa-users mr-1"></i> 注册用户 <span id="account-count" class="text-xs opacity-75">(0)</span></button>
+                <button id="user-tab-student" class="btn btn-outline" onclick="switchUserTab('student')" style="flex:1;"><i class="fas fa-id-card mr-1"></i> 学号学员 <span id="student-count" class="text-xs opacity-75">(0)</span></button>
+            </div>
+
+            <!-- Account users section -->
+            <div id="users-account-panel">
+                <div class="bg-white rounded-xl border" id="users-list-account">
+                    <p class="text-gray-400 text-center py-8">加载中...</p>
+                </div>
+            </div>
+
+            <!-- Student ID users section -->
+            <div id="users-student-panel" style="display:none;">
+                <div class="flex gap-2 mb-3">
+                    <a href="/api/admin/users/excel-template" class="btn btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;"><i class="fas fa-download mr-1"></i> 下载Excel模板</a>
+                    <button class="btn btn-outline" onclick="document.getElementById('user-excel-file').click()"><i class="fas fa-file-excel mr-1"></i> Excel批量导入</button>
+                    <input type="file" id="user-excel-file" accept=".xlsx,.xls" style="display:none" onchange="importUsersExcel(this)">
+                </div>
+                <div class="bg-white rounded-xl border" id="users-list-student">
+                    <p class="text-gray-400 text-center py-8">加载中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Tab -->
+        <div id="import-tab" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">试题导入</h2>
+
+            <!-- Import sub-tabs -->
+            <div class="import-tabs">
+                <div class="import-tab active" onclick="switchImportTab('paste-panel', this)"><i class="fas fa-paste"></i> 粘贴导入</div>
+                <div class="import-tab" onclick="switchImportTab('txt-panel', this)"><i class="fas fa-file-alt"></i> 文本导入</div>
+                <div class="import-tab" onclick="switchImportTab('word-panel', this)"><i class="fas fa-file-word"></i> Word 导入</div>
+                <div class="import-tab" onclick="switchImportTab('json-panel', this)"><i class="fas fa-code"></i> JSON 导入</div>
+                <div class="import-tab" onclick="switchImportTab('excel-panel', this)"><i class="fas fa-file-excel"></i> Excel 导入</div>
+            </div>
+
+            <!-- Paste Import Panel (Dual Pane) -->
+            <div id="paste-panel" class="import-panel active">
+                <div class="bg-white rounded-xl border p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2"><i class="fas fa-paste mr-2 text-purple-500"></i>粘贴导入</h3>
+                    <p class="text-sm text-gray-500 mb-4">直接粘贴试题文本到左侧，右侧实时预览学生端效果。修改左侧内容后点击"预览"刷新右侧。</p>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">套卷/考试名称（可选）</label>
+                        <input type="text" id="paste-source-set" class="form-input w-full max-w-md" placeholder="填写套卷名称后，导入的试题将自动创建为考试，无需再手动组卷">
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" style="min-height: 500px;">
+                        <!-- Left Pane: Input -->
+                        <div class="flex flex-col">
+                            <label class="block text-sm font-medium text-gray-700 mb-2"><i class="fas fa-edit mr-1"></i> 试题内容</label>
+                            <textarea id="paste-content" class="form-input flex-1 font-mono text-sm" style="min-height: 450px; resize: vertical;" placeholder="在此粘贴试题内容...
+
+格式示例：
+【单选题】
+题目：关于细胞凋亡的描述，错误的是
+A. 是由基因控制的程序性死亡
+B. 可引起炎症反应
+C. 是单个细胞的死亡
+D. 不引起炎症反应
+E. 可见于生理和病理过程
+F. 仅发生于胚胎发育阶段
+答案：B
+解析：细胞凋亡一般不引起炎症反应。
+
+【共用题干】
+患者男，50岁，...（临床资料）
+提问1：第一小题题干
+A.选项A
+B.选项B
+...
+答案：X
+解析：解析内容
+
+【案例分析题】
+患者女，45岁，...（详细临床资料）
+提问1：第一小题题干
+A.选项A
+...
+答案：X
+解析：解析内容"></textarea>
+                            <div class="flex gap-2 mt-3">
+                                <button type="button" class="btn btn-primary" onclick="previewPaste()"><i class="fas fa-eye mr-1"></i> 预览解析</button>
+                                <button type="button" class="btn btn-success" onclick="importPaste()"><i class="fas fa-upload mr-1"></i> 确认导入</button>
+                            </div>
+                            <div id="paste-result" class="mt-3 text-sm"></div>
+                        </div>
+
+                        <!-- Right Pane: Preview -->
+                        <div class="flex flex-col">
+                            <label class="block text-sm font-medium text-gray-700 mb-2"><i class="fas fa-eye mr-1"></i> 学生端预览</label>
+                            <div id="paste-preview" class="flex-1 border rounded-lg p-4 bg-gray-50 overflow-y-auto" style="min-height: 450px; max-height: 600px;">
+                                <div style="color:#718096;text-align:center;padding:60px 20px;">
+                                    <i class="fas fa-file-alt fa-3x mb-3" style="opacity:0.3;"></i>
+                                    <p>在左侧粘贴试题内容后，点击"预览解析"查看学生端效果</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TXT Import Panel -->
+            <div id="txt-panel" class="import-panel">
+                <div class="bg-white rounded-xl border p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2"><i class="fas fa-file-alt mr-2 text-blue-500"></i>文本文件导入</h3>
+                    <p class="text-sm text-gray-500 mb-4">上传 .txt 文本文件，按指定格式编写试题后批量导入。支持 UTF-8 和 GBK 编码。</p>
+
+                    <div class="format-guide">
+                        <h4><i class="fas fa-lightbulb mr-1"></i> 格式说明（支持全部四种题型）</h4>
+                        <pre>【单选题】
+分类：总论-细胞适应与损伤
+题目：关于细胞凋亡的描述，错误的是
+A. 是由基因控制的程序性死亡
+B. 可引起炎症反应
+C. 是单个细胞的死亡
+D. 不引起炎症反应
+E. 可见于生理和病理过程
+F. 仅发生于胚胎发育阶段
+G. 又称细胞程序性死亡
+答案：B
+解析：细胞凋亡一般不引起炎症反应，这是与坏死的重要区别。
+
+【多选题】
+分类：总论-肿瘤
+题目：下列属于癌前病变的有
+A. 黏膜白斑
+B. 慢性宫颈炎伴宫颈糜烂
+C. 纤维囊性乳腺病
+D. 肝血管瘤
+E. 结肠腺瘤性息肉
+F. 慢性萎缩性胃炎
+G. 皮肤慢性溃疡
+答案：ABCEFG
+解析：肝血管瘤是良性肿瘤，不属于癌前病变。
+
+【共用题干】（共用题干单选题：一个题干下设3-6小题，每题单选，选项6-8个）
+分类：各论-呼吸及胸腔系统
+题干：患者男，65岁，吸烟40年，持续咳嗽、咳痰3个月，近1周痰中带血。查体：体温37.2℃，右下肺可闻及局限性哮鸣音。胸部X线示右下肺门区团块影。
+提问1：最可能的诊断是
+A. 肺结核
+B. 肺癌
+C. 慢性支气管炎
+D. 肺脓肿
+E. 肺炎
+F. 支气管扩张
+答案：B
+提问2：为明确诊断，首选检查是
+A. 胸部X线
+B. 痰脱落细胞学
+C. 支气管镜
+D. CT
+E. MRI
+F. 肿瘤标志物
+答案：C
+提问3：该患者最可能的病理类型是
+A. 鳞状细胞癌
+B. 腺癌
+C. 小细胞癌
+D. 大细胞癌
+E. 细支气管肺泡癌
+F. 类癌
+答案：A
+提问4：若确诊为肺癌，TNM分期中T分期主要依据
+A. 肿瘤大小
+B. 淋巴结转移数目
+C. 有无远处转移
+D. 肿瘤浸润深度
+E. 肿瘤与主支气管关系
+F. 胸膜是否受累
+答案：A
+
+【案例分析题】（案例分析题：不定项选择题，选项6-8个，下设6-8小题）
+分类：各论-女性生殖系统
+题干：患者女，45岁，发现右乳肿块1周。查体：右乳外上象限可及一3cm×2cm肿块，质硬，边界不清，活动度差，右乳头内陷，右腋窝可触及2枚肿大淋巴结。
+提问1：该患者最可能的诊断
+A. 乳腺纤维腺瘤
+B. 乳腺癌
+C. 乳腺囊性增生
+D. 乳腺炎
+E. 乳腺导管内乳头状瘤
+F. 乳房脂肪坏死
+答案：B
+提问2：确诊依据包括
+A. 肿块质硬固定
+B. 乳头内陷
+C. 腋窝淋巴结肿大
+D. 年龄
+E. 肿块边界不清
+F. 活动度差
+答案：ABCEF
+提问3：为明确诊断应进行的检查
+A. 乳腺B超
+B. 乳腺钼靶X线
+C. 穿刺活检
+D. MRI
+E. CT
+F. 肿瘤标志物
+答案：ABC
+提问4：若确诊为乳腺癌，最常见的病理类型为
+A. 浸润性导管癌
+B. 浸润性小叶癌
+C. 髓样癌
+D. 黏液癌
+E. 导管内癌
+F. 炎性乳腺癌
+答案：A
+提问5：该患者腋窝淋巴结的处理原则
+A. 行腋窝淋巴结清扫
+B. 仅行前哨淋巴结活检
+C. 术后放疗
+D. 化疗即可
+E. 不需处理
+F. 视术中情况决定
+答案：A
+提问6：术后辅助化疗的常用方案
+A. AC方案（阿霉素+环磷酰胺）
+B. TC方案（多西他赛+环磷酰胺）
+C. CMF方案
+D. 紫杉醇单药
+E. 内分泌治疗
+F. 靶向治疗
+答案：ABC
+
+注意：
+- "分类：" 为可选项，放在题型标记之后、题目内容之前
+- 总论分类：细胞适应与损伤、损伤修复、血液循环障碍、炎症、肿瘤、免疫病理、遗传性疾病
+- 各论分类：心血管系统、呼吸系统、消化系统、泌尿系统、淋巴造血系统、内分泌系统、神经系统、生殖系统、骨与关节、皮肤与软组织、传染病与寄生虫</pre>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">套卷/考试名称</label>
+                        <input type="text" id="txt-source-set" class="form-input" placeholder="如：2024年模拟试卷一，填写后将自动创建为考试">
+                        <p class="text-xs text-gray-500 mt-1">填写套卷名称后，导入的试题将自动创建为一场考试，无需再手动组卷</p>
+                    </div>
+
+                    <input type="file" id="txt-file" accept=".txt" class="mb-3">
+                    <button class="btn btn-primary" onclick="importTXT()"><i class="fas fa-upload mr-1"></i>导入 TXT</button>
+                    <div id="txt-result" class="mt-3 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- Word Import Panel -->
+            <div id="word-panel" class="import-panel">
+                <div class="bg-white rounded-xl border p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2"><i class="fas fa-file-word mr-2 text-blue-600"></i>Word 文档导入</h3>
+                    <p class="text-sm text-gray-500 mb-4">上传 .docx 文档，格式与文本导入相同。Word 中嵌入的图片会自动提取并插入题干。</p>
+
+                    <div class="format-guide">
+                        <h4><i class="fas fa-lightbulb mr-1"></i> Word 格式说明</h4>
+                        <pre>与 TXT 格式完全一致，使用【单选题】【多选题】【共用题干】【案例分析题】标记题型。
+每道题可用"分类：xxx"指定分类（如：分类：总论-肿瘤），不填则默认为空。
+Word 中插入的图片会被自动提取为题干中的图片引用。
+每道题目之间用空行分隔。</pre>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">套卷/考试名称</label>
+                        <input type="text" id="word-source-set" class="form-input" placeholder="如：2024年模拟试卷一，填写后将自动创建为考试">
+                        <p class="text-xs text-gray-500 mt-1">填写套卷名称后，导入的试题将自动创建为一场考试，无需再手动组卷</p>
+                    </div>
+
+                    <input type="file" id="word-file" accept=".docx" class="mb-3">
+                    <button class="btn btn-primary" onclick="importWord()"><i class="fas fa-upload mr-1"></i>导入 Word</button>
+                    <div id="word-result" class="mt-3 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- JSON Import Panel -->
+            <div id="json-panel" class="import-panel">
+                <div class="bg-white rounded-xl border p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2"><i class="fas fa-code mr-2 text-blue-500"></i>JSON 导入</h3>
+                    <p class="text-sm text-gray-500 mb-4">上传 JSON 格式的试题文件。支持批量导入单选题、多选题、共用题干题和案例分析题。</p>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">JSON 格式说明</label>
+                        <pre class="bg-gray-50 p-3 rounded-lg text-xs overflow-x-auto border">[
+  {
+    "type": "single",
+    "category": "总论",
+    "content": "题目内容",
+    "options": [
+      {"label":"A","text":"选项A"},
+      {"label":"B","text":"选项B"},
+      {"label":"C","text":"选项C"},
+      {"label":"D","text":"选项D"},
+      {"label":"E","text":"选项E"}
+    ],
+    "answer": "A",
+    "explanation": "解析",
+    "score": 1
+  }
+]</pre>
+                    </div>
+                    <input type="file" id="json-file" accept=".json" class="mb-3">
+                    <button class="btn btn-primary" onclick="importJSON()"><i class="fas fa-upload mr-1"></i>导入 JSON</button>
+                    <div id="json-result" class="mt-3 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- Excel Import Panel -->
+            <div id="excel-panel" class="import-panel">
+                <div class="bg-white rounded-xl border p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2"><i class="fas fa-file-excel mr-2 text-green-500"></i>Excel 导入</h3>
+                    <p class="text-sm text-gray-500 mb-4">下载模板文件，按格式填写后上传。支持 .xlsx 格式。</p>
+                    <div class="mb-4">
+                        <a href="/api/admin/template/excel" class="btn btn-success"><i class="fas fa-download mr-1"></i>下载 Excel 模板</a>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-3">模板列说明：</p>
+                    <table class="text-xs w-full mb-4">
+                        <tr class="border-b"><td class="py-1 pr-3 font-semibold">题型</td><td>single / multiple / shared / case</td></tr>
+                        <tr class="border-b"><td class="py-1 pr-3 font-semibold">分类</td><td>如：总论、各论</td></tr>
+                        <tr class="border-b"><td class="py-1 pr-3 font-semibold">题目内容</td><td>题干文本</td></tr>
+                        <tr class="border-b"><td class="py-1 pr-3 font-semibold">选项(JSON)</td><td>JSON数组格式</td></tr>
+                        <tr class="border-b"><td class="py-1 pr-3 font-semibold">答案</td><td>单选: A; 多选: ABCD; 子题: 各子题答案JSON</td></tr>
+                        <tr class="border-b"><td class="py-1 pr-3 font-semibold">解析</td><td>答案解析文本</td></tr>
+                        <tr class="border-b"><td class="py-1 pr-3 font-semibold">分值</td><td>数字</td></tr>
+                        <tr><td class="py-1 pr-3 font-semibold">子题(JSON)</td><td>共用题干/案例分析的子题JSON数组</td></tr>
+                    </table>
+                    <input type="file" id="excel-file" accept=".xlsx,.xls" class="mb-3">
+                    <button class="btn btn-primary" onclick="importExcel()"><i class="fas fa-upload mr-1"></i>导入 Excel</button>
+                    <div id="excel-result" class="mt-3 text-sm"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Modal -->
+    <div class="modal-overlay" id="question-modal" style="display:none">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold" id="question-modal-title">添加试题</h3>
+                <button onclick="closeQuestionModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+            <form id="question-form" onsubmit="saveQuestion(event)">
+                <input type="hidden" id="q-edit-id">
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">题型 *</label>
+                    <select id="q-type" class="form-input" onchange="onQuestionTypeChange()">
+                        <option value="single">单项选择题</option>
+                        <option value="multiple">多项选择题</option>
+                        <option value="shared">共用题干单选题</option>
+                        <option value="case">案例分析题</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">分类</label>
+                    <select id="q-category" class="form-input">
+                        <option value="">请选择分类</option>
+                        <optgroup label="总论">
+                            <option value="总论-细胞适应与损伤">细胞适应与损伤</option>
+                            <option value="总论-损伤修复">损伤修复</option>
+                            <option value="总论-血液循环障碍">血液循环障碍</option>
+                            <option value="总论-炎症">炎症</option>
+                            <option value="总论-肿瘤">肿瘤</option>
+                            <option value="总论-免疫病理">免疫病理</option>
+                            <option value="总论-遗传性疾病">遗传性疾病</option>
+                            <option value="总论-其他">其他</option>
+                        </optgroup>
+                        <optgroup label="各论">
+                            <option value="各论-心血管系统">心血管系统</option>
+                            <option value="各论-呼吸及胸腔系统">呼吸及胸腔系统</option>
+                            <option value="各论-消化系统">消化系统</option>
+                            <option value="各论-泌尿和男性生殖系统">泌尿和男性生殖系统</option>
+                            <option value="各论-淋巴造血系统">淋巴造血系统</option>
+                            <option value="各论-内分泌和神经内分泌系统">内分泌和神经内分泌系统</option>
+                            <option value="各论-神经系统">神经系统</option>
+                            <option value="各论-女性生殖系统">女性生殖系统</option>
+                            <option value="各论-骨与关节">骨与关节</option>
+                            <option value="各论-皮肤与软组织">皮肤与软组织</option>
+                            <option value="各论-头颈部">头颈部</option>
+                            <option value="各论-传染病与寄生虫">传染病与寄生虫</option>
+                            <option value="各论-病理学技术">病理学技术</option>
+                            <option value="各论-其他">其他</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">题目内容 *</label>
+                    <textarea id="q-content" class="form-input" rows="3" placeholder="输入题干内容"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">题干图片</label>
+                    <div class="img-upload-area" onclick="document.getElementById('q-image-input').click()">
+                        <i class="fas fa-cloud-upload-alt text-gray-400 text-xl"></i>
+                        <p class="text-sm text-gray-500 mt-1">点击或拖拽上传图片（支持 JPG、PNG）</p>
+                    </div>
+                    <input type="file" id="q-image-input" accept="image/*" style="display:none" onchange="uploadQuestionImage(this)">
+                    <div class="img-preview-list" id="q-image-previews"></div>
+                </div>
+                <div id="options-section">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">选项</label>
+                    <div id="options-container"></div>
+                    <button type="button" class="btn btn-outline text-sm mt-1" onclick="addOption()"><i class="fas fa-plus"></i> 添加选项</button>
+                </div>
+                <div class="mb-3 mt-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">答案 *</label>
+                    <input type="text" id="q-answer" class="form-input" placeholder="单选: A; 多选: ABCD">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">解析</label>
+                    <textarea id="q-explanation" class="form-input" rows="2" placeholder="答案解析"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">分值</label>
+                    <input type="number" id="q-score" class="form-input" value="1" step="0.5" min="0.5">
+                </div>
+
+                <!-- Sub-questions section for shared/case types -->
+                <div id="sub-questions-section" style="display:none">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">子题（提问）</label>
+                    <div id="sub-questions-container"></div>
+                    <button type="button" class="btn btn-outline text-sm mt-1" onclick="addSubQuestion()"><i class="fas fa-plus"></i> 添加提问</button>
+                </div>
+
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" class="btn btn-outline" onclick="closeQuestionModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Exam Modal -->
+    <div class="modal-overlay" id="exam-modal" style="display:none">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold" id="exam-modal-title">创建考试</h3>
+                <button onclick="closeExamModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+            <form onsubmit="saveExam(event)">
+                <input type="hidden" id="e-edit-id">
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">考试名称 *</label>
+                    <input type="text" id="e-title" class="form-input" required>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                    <textarea id="e-description" class="form-input" rows="2"></textarea>
+                </div>
+                <div class="grid grid-cols-3 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">时长(分钟)</label>
+                        <input type="number" id="e-duration" class="form-input" value="120">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">满分</label>
+                        <input type="number" id="e-total-score" class="form-input" value="100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">合格分</label>
+                        <input type="number" id="e-pass-score" class="form-input" value="60">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" id="e-practice"> <span class="text-sm text-gray-700">练习模式（不计入正式记录）</span>
+                    </label>
+                </div>
+                <div class="mb-4" style="background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-sm font-semibold text-gray-700"><i class="fas fa-star mr-1" style="color:#d69e2e"></i> 快捷赋分</label>
+                        <span class="text-xs text-gray-400">设定后自动计算每题分值</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 mb-2">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">单选</label>
+                            <input type="number" id="ts-single" class="form-input text-sm" style="width:100%" value="1" min="0" step="0.5" oninput="updateScorePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">多选</label>
+                            <input type="number" id="ts-multiple" class="form-input text-sm" style="width:100%" value="1" min="0" step="0.5" oninput="updateScorePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">共用题干</label>
+                            <input type="number" id="ts-shared" class="form-input text-sm" style="width:100%" value="1" min="0" step="0.5" oninput="updateScorePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">案例分析</label>
+                            <input type="number" id="ts-case" class="form-input text-sm" style="width:100%" value="1" min="0" step="0.5" oninput="updateScorePreview()">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div id="score-preview" class="text-sm text-gray-600">总分: 0</div>
+                        <button type="button" class="btn btn-outline text-xs" onclick="applyTypeScores()" style="padding:4px 12px;"><i class="fas fa-check mr-1"></i>应用赋分</button>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">选择题目</label>
+                    <div class="flex gap-2 mb-2 flex-wrap">
+                        <select id="e-q-filter" class="form-input" style="width:auto" onchange="loadExamQuestionPool()">
+                            <option value="">全部题型</option>
+                            <option value="single">单选</option>
+                            <option value="multiple">多选</option>
+                            <option value="shared">共用题干</option>
+                            <option value="case">案例分析</option>
+                        </select>
+                        <select id="e-set-filter" class="form-input" style="width:auto" onchange="loadExamQuestionPool()">
+                            <option value="">全部套卷</option>
+                        </select>
+                        <button type="button" class="btn btn-outline" onclick="loadQuestionSets()" title="刷新套卷列表"><i class="fas fa-sync-alt"></i></button>
+                        <button type="button" class="btn btn-success" onclick="toggleRandomPanel()" style="white-space:nowrap"><i class="fas fa-random"></i> 随机抽题</button>
+                    </div>
+                    <div id="exam-question-pool" class="border rounded-lg p-3 max-h-60 overflow-y-auto text-sm"></div>
+                    <div class="mt-2 text-sm text-gray-500">已选 <strong id="selected-count">0</strong> 题</div>
+
+                    <!-- Random selection panel -->
+                    <div class="random-panel" id="random-panel" style="display:none">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm font-semibold text-green-800"><i class="fas fa-random mr-1"></i> 随机抽题（按题型自定义数量）</span>
+                            <button type="button" class="text-gray-400 hover:text-gray-600 text-sm" onclick="toggleRandomPanel()">&times;</button>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs mb-1 text-gray-600">单选题</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="random-single" class="form-input text-center" style="width:60px" value="0" min="0" max="200">
+                                    <span class="text-xs text-gray-400">道</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs mb-1 text-gray-600">多选题</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="random-multiple" class="form-input text-center" style="width:60px" value="0" min="0" max="200">
+                                    <span class="text-xs text-gray-400">道</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs mb-1 text-gray-600">共用题干题</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="random-shared" class="form-input text-center" style="width:60px" value="0" min="0" max="200">
+                                    <span class="text-xs text-gray-400">组</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs mb-1 text-gray-600">案例分析题</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="random-case" class="form-input text-center" style="width:60px" value="0" min="0" max="200">
+                                    <span class="text-xs text-gray-400">组</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="button" class="btn btn-success" onclick="randomSelectQuestions()"><i class="fas fa-dice"></i> 开始抽题</button>
+                            <span id="random-available" class="text-xs text-gray-500"></span>
+                        </div>
+                        <div id="random-result" class="mt-2 text-sm text-gray-600"></div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="btn btn-outline" onclick="closeExamModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal-overlay" id="user-modal" style="display:none">
+        <div class="modal-box" style="max-width:420px">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold" id="user-modal-title">添加用户</h3>
+                <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+            <!-- Mode tabs -->
+            <div style="display:flex;gap:4px;margin-bottom:16px;">
+                <button type="button" id="umode-account" class="btn btn-primary" onclick="switchModalMode('account')" style="flex:1;padding:8px;">账号添加</button>
+                <button type="button" id="umode-student" class="btn btn-outline" onclick="switchModalMode('student_id')" style="flex:1;padding:8px;">学号添加</button>
+            </div>
+            <form onsubmit="saveUser(event)">
+                <!-- Account mode fields -->
+                <div id="umode-account-fields">
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">用户名 *</label>
+                        <input type="text" id="u-username" class="form-input" placeholder="登录用的用户名">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                        <input type="text" id="u-realname" class="form-input" placeholder="可选">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">学号（选填）</label>
+                        <input type="text" id="u-student-id-opt" class="form-input" placeholder="填了可同时用学号登录">
+                    </div>
+                </div>
+                <!-- Student ID mode fields -->
+                <div id="umode-student-fields" style="display:none;">
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">学号 *</label>
+                        <input type="text" id="u-student-id" class="form-input" placeholder="如 2024001">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">姓名 *</label>
+                        <input type="text" id="u-realname-sid" class="form-input" placeholder="学员真实姓名">
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3"><i class="fas fa-info-circle mr-1"></i>学号学员的用户名自动设为学号，默认密码为 123456</p>
+                </div>
+                <!-- Common fields -->
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">密码 *</label>
+                    <input type="password" id="u-password" class="form-input" placeholder="登录密码">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">角色</label>
+                    <select id="u-role" class="form-input">
+                        <option value="student">学生</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="btn btn-outline" onclick="closeUserModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+        <!-- Blog Tab -->
+        <div id="blog-tab" class="tab-content">
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">博客管理</h2>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="showAddPost()" style="margin-bottom:16px;"><i class="fas fa-plus mr-1"></i> 新建文章</button>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="bg-white rounded-xl border p-4 mb-6 flex items-center gap-4">
+                <div>
+                    <label class="text-xs text-gray-500 mr-1">分类</label>
+                    <select id="blog-filter-category" class="form-input" style="width:auto;" onchange="loadBlogPosts()">
+                        <option value="">全部分类</option>
+                        <option value="学习笔记">学习笔记</option>
+                        <option value="考试辅导">考试辅导</option>
+                        <option value="病理知识">病理知识</option>
+                        <option value="经验分享">经验分享</option>
+                        <option value="系统公告">系统公告</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mr-1">状态</label>
+                    <select id="blog-filter-published" class="form-input" style="width:auto;" onchange="loadBlogPosts()">
+                        <option value="">全部</option>
+                        <option value="1">已发布</option>
+                        <option value="0">草稿</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Blog posts list -->
+            <div id="blog-posts-list" class="space-y-4"></div>
+            <div id="blog-pagination" class="flex justify-center mt-6"></div>
+        </div>
+
+        <!-- Blog Post Modal -->
+        <div id="blog-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-box" style="max-width:900px;">
+                <h3 id="blog-modal-title" class="text-xl font-bold text-gray-800 mb-4">新建文章</h3>
+                <form id="blog-form" onsubmit="saveBlogPost(event)">
+                    <input type="hidden" id="blog-post-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">标题 *</label>
+                            <input type="text" id="blog-title" class="form-input" required placeholder="文章标题">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">作者</label>
+                            <input type="text" id="blog-author" class="form-input" value="张老师" placeholder="作者名称">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">分类</label>
+                            <select id="blog-category" class="form-input">
+                                <option value="学习笔记">学习笔记</option>
+                                <option value="考试辅导">考试辅导</option>
+                                <option value="病理知识">病理知识</option>
+                                <option value="经验分享">经验分享</option>
+                                <option value="系统公告">系统公告</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">标签（逗号分隔）</label>
+                            <input type="text" id="blog-tags" class="form-input" placeholder="如：病理学,组织学">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">封面图片URL</label>
+                            <input type="text" id="blog-cover" class="form-input" placeholder="可选">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">摘要</label>
+                        <textarea id="blog-summary" class="form-input" rows="2" placeholder="文章摘要，显示在列表中"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">正文内容（支持HTML）</label>
+                        <textarea id="blog-content" class="form-input" rows="15" style="font-family:monospace;font-size:13px;" placeholder="在此输入文章内容...&#10;&#10;支持HTML标签，如：&#10;<h2>标题</h2>&#10;<p>段落内容</p>&#10;<ul><li>列表项</li></ul>&#10;<img src='图片URL' alt='描述'>&#10;<strong>加粗</strong> <em>斜体</em>"></textarea>
+                    </div>
+                    <div class="flex items-center gap-4 mb-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="blog-published" checked>
+                            <span class="text-sm text-gray-700">发布</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="blog-pinned">
+                            <span class="text-sm text-gray-700">置顶</span>
+                        </label>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" class="btn btn-outline" onclick="closeBlogModal()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Blog Preview Modal -->
+        <div id="blog-preview-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-box" style="max-width:800px;">
+                <div id="blog-preview-content"></div>
+                <div class="flex justify-end mt-4">
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('blog-preview-modal').style.display='none'">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Settings Tab -->
+        <div id="ai-settings-tab" class="tab-content">
+            <div style="max-width:600px;margin:0 auto;">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">AI 服务设置</h2>
+                <div class="bg-white rounded-xl border p-6">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">AI 服务商</label>
+                        <select id="ai-provider" class="form-input" onchange="onProviderChange()">
+                            <option value="deepseek">DeepSeek (深度求索)</option>
+                            <option value="siliconflow">硅基流动 (SiliconFlow)</option>
+                            <option value="custom">自定义 (OpenAI兼容)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                        <input type="password" id="ai-api-key" class="form-input" placeholder="输入你的 API Key">
+                        <p class="text-xs text-gray-400 mt-1" id="ai-key-hint"></p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">模型名称</label>
+                        <select id="ai-model-select" class="form-input" onchange="onModelSelect()" style="margin-bottom:6px;">
+                            <option value="deepseek-chat">deepseek-chat (DeepSeek-V3)</option>
+                            <option value="deepseek-reasoner">deepseek-reasoner (DeepSeek-R1)</option>
+                            <option value="deepseek-ai/DeepSeek-V3">硅基流动 DeepSeek-V3</option>
+                            <option value="deepseek-ai/DeepSeek-R1">硅基流动 DeepSeek-R1</option>
+                            <option value="Qwen/Qwen2.5-72B-Instruct">硅基流动 Qwen2.5-72B</option>
+                            <option value="custom">自定义模型...</option>
+                        </select>
+                        <input type="text" id="ai-model" class="form-input" placeholder="输入自定义模型名称" style="display:none;">
+                        <p class="text-xs text-gray-400 mt-1">选择预设模型或输入自定义模型名称。当前已保存：<span id="ai-model-current" style="color:#2563eb;font-weight:600;"></span></p>
+                    </div>
+                    <div class="mb-6" id="ai-base-url-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Base URL</label>
+                        <input type="text" id="ai-base-url" class="form-input" placeholder="https://api.openai.com/v1">
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="saveAISettings()"><i class="fas fa-save mr-1"></i>保存设置</button>
+                    <div id="ai-settings-msg" class="mt-3 text-sm"></div>
+                </div>
+                <div class="mt-6 bg-blue-50 rounded-xl border border-blue-100 p-5">
+                    <h4 class="text-sm font-bold text-blue-800 mb-2"><i class="fas fa-info-circle mr-1"></i>使用说明</h4>
+                    <ul class="text-xs text-blue-700 space-y-1">
+                        <li>• DeepSeek：访问 <a href="https://platform.deepseek.com" target="_blank" class="underline">platform.deepseek.com</a> 注册获取API Key</li>
+                        <li>• 硅基流动：访问 <a href="https://siliconflow.cn" target="_blank" class="underline">siliconflow.cn</a> 注册获取API Key</li>
+                        <li>• 两者都兼容OpenAI接口格式，可互换使用</li>
+                        <li>• AI出题按token计费，请注意用量</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Question Generation Tab -->
+        <div id="ai-tab" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-robot mr-2 text-blue-600"></i>AI 智能出题</h2>
+
+            <!-- Textbook Upload Section -->
+            <div class="bg-white rounded-xl border p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-book mr-2 text-indigo-500"></i>教材资料 <span class="text-sm font-normal text-gray-400">（双击选择为参考教材）</span></h3>
+                    <label class="btn btn-primary" style="cursor:pointer;">
+                        <i class="fas fa-upload mr-1"></i>上传教材
+                        <input type="file" id="textbook-file" accept=".pdf,.docx,.doc,.txt" multiple style="display:none;" onchange="uploadTextbooks(this)">
+                    </label>
+                </div>
+                <div class="flex gap-4" style="min-height:120px;">
+                    <!-- Left: All textbooks -->
+                    <div style="flex:1;min-width:0;">
+                        <div id="textbook-list" class="space-y-2">
+                            <div class="text-center text-gray-400 py-6"><i class="fas fa-book-open text-3xl mb-2"></i><p>暂无教材，请上传 PDF/Word/TXT 文件</p></div>
+                        </div>
+                    </div>
+                    <!-- Right: Selected textbooks -->
+                    <div style="flex:1;min-width:0;">
+                        <div class="text-sm font-medium text-gray-500 mb-2"><i class="fas fa-check-circle text-green-500 mr-1"></i>已选参考教材</div>
+                        <div id="textbook-selected" class="space-y-2">
+                            <div class="text-center text-gray-300 py-6 text-sm">双击左侧教材添加</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="textbook-upload-progress" style="display:none;" class="mt-3">
+                    <div class="flex items-center gap-3">
+                        <div class="animate-spin rounded-full h-5 w-5 border-2 border-indigo-200 border-t-indigo-600"></div>
+                        <span class="text-sm text-gray-500" id="upload-status">正在上传并解析...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generation Form -->
+            <div class="bg-white rounded-xl border p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-magic mr-2 text-blue-500"></i>出题设置</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">题型与数量</label>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2 p-2 border rounded-lg hover:bg-blue-50">
+                                <input type="checkbox" value="single" class="ai-q-type-cb" checked onchange="toggleTypeCount(this)">
+                                <span class="text-sm flex-1">单选题 (A-D)</span>
+                                <input type="number" id="ai-q-count-single" class="form-input text-sm text-center" style="width:60px" value="5" min="1" max="20">
+                                <span class="text-xs text-gray-400">题</span>
+                            </div>
+                            <div class="flex items-center gap-2 p-2 border rounded-lg hover:bg-blue-50">
+                                <input type="checkbox" value="multiple" class="ai-q-type-cb" onchange="toggleTypeCount(this)">
+                                <span class="text-sm flex-1">多选题 (A-H)</span>
+                                <input type="number" id="ai-q-count-multiple" class="form-input text-sm text-center" style="width:60px" value="3" min="1" max="20" disabled>
+                                <span class="text-xs text-gray-400">题</span>
+                            </div>
+                            <div class="flex items-center gap-2 p-2 border rounded-lg hover:bg-blue-50">
+                                <input type="checkbox" value="shared" class="ai-q-type-cb" onchange="toggleTypeCount(this)">
+                                <span class="text-sm flex-1">共用题干单选题</span>
+                                <input type="number" id="ai-q-count-shared" class="form-input text-sm text-center" style="width:60px" value="2" min="1" max="10" disabled>
+                                <span class="text-xs text-gray-400">组</span>
+                            </div>
+                            <div class="flex items-center gap-2 p-2 border rounded-lg hover:bg-blue-50">
+                                <input type="checkbox" value="case" class="ai-q-type-cb" onchange="toggleTypeCount(this)">
+                                <span class="text-sm flex-1">案例分析多选题</span>
+                                <input type="number" id="ai-q-count-case" class="form-input text-sm text-center" style="width:60px" value="1" min="1" max="5" disabled>
+                                <span class="text-xs text-gray-400">组</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">分类</label>
+                        <select id="ai-q-category" class="form-input">
+                            <option value="套卷">套卷（综合所有分类）</option>
+                            <option value="总论">总论</option>
+                            <option value="各论-心血管系统">各论-心血管系统</option>
+                            <option value="各论-呼吸及胸腔系统">各论-呼吸及胸腔系统</option>
+                            <option value="各论-消化系统">各论-消化系统</option>
+                            <option value="各论-泌尿和男性生殖系统">各论-泌尿和男性生殖系统</option>
+                            <option value="各论-淋巴造血系统">各论-淋巴造血系统</option>
+                            <option value="各论-内分泌和神经内分泌系统">各论-内分泌和神经内分泌系统</option>
+                            <option value="各论-神经系统">各论-神经系统</option>
+                            <option value="各论-女性生殖系统">各论-女性生殖系统</option>
+                            <option value="各论-骨与关节">各论-骨与关节</option>
+                            <option value="各论-皮肤与软组织">各论-皮肤与软组织</option>
+                            <option value="各论-头颈部">各论-头颈部</option>
+                            <option value="各论-传染病与寄生虫">各论-传染病与寄生虫</option>
+                            <option value="病理学技术">病理学技术</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">知识点/主题（可选）</label>
+                        <input type="text" id="ai-q-topic" class="form-input" placeholder="如：细胞凋亡、肿瘤转移...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">考试级别</label>
+                        <select id="ai-q-difficulty" class="form-input">
+                            <option value="初级">初级</option>
+                            <option value="中级">中级</option>
+                            <option value="副高" selected>副高</option>
+                            <option value="正高">正高</option>
+                        </select>                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">难度级别</label>
+                        <select id="ai-q-level" class="form-input">
+                            <option value="1">1级 · 基础</option>
+                            <option value="2" selected>2级 · 中等</option>
+                            <option value="3">3级 · 困难</option>
+                        </select>
+                    </div>
+
+                </div>
+                <!-- Prompt Templates -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">提示词模板（点击展开）</label>
+                    <details class="border rounded-lg">
+                        <summary class="p-3 cursor-pointer text-sm text-blue-600 hover:bg-blue-50"><i class="fas fa-eye mr-1"></i>查看AI出题提示词</summary>
+                        <div class="p-3 bg-gray-50 text-xs text-gray-600 max-h-60 overflow-y-auto" style="white-space:pre-wrap;font-family:monospace;">【单选题提示词】
+生成单选题，每题4个选项(A-D)，只有1个正确答案。
+返回JSON格式：
+[{"question":"题目","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A","explanation":"解析","knowledge_point":"知识点"}]
+
+【多选题提示词】
+生成多选题，每题8个选项(A-H)，有2-4个正确答案。
+返回JSON格式：
+[{"question":"题目","options":{"A":"...","B":"...","C":"...","D":"...","E":"...","F":"...","G":"...","H":"..."},"answer":"AB","explanation":"解析","knowledge_point":"知识点"}]
+
+【共用题干单选题提示词】
+生成共用题干题，一个临床病例题干下含3-5个小题，每题8个选项(A-H)，只有1个正确答案。
+返回JSON格式：
+[{"stem":"共用题干","sub_questions":[{"question":"小题1","options":{"A":"...","B":"...","C":"...","D":"...","E":"...","F":"...","G":"...","H":"..."},"answer":"A","explanation":"解析"}]}]
+
+【案例分析多选题提示词】
+生成案例分析题，详细临床病例描述下含6-8个小题，每题8个选项(A-H)，有1-4个正确答案。
+返回JSON格式：
+[{"stem":"详细病例描述","sub_questions":[{"question":"小题1","options":{"A":"...","B":"...","C":"...","D":"...","E":"...","F":"...","G":"...","H":"..."},"answer":"AB","explanation":"解析"}]}]</div>
+                    </details>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" class="btn btn-primary" onclick="generateAIQuestions()" id="ai-generate-btn">
+                        <i class="fas fa-magic mr-1"></i>AI 生成题目
+                    </button>
+                    <span id="ai-status" class="text-sm text-gray-400"></span>
+                </div>
+            </div>
+
+            <!-- Streaming Output Box -->
+            <div id="ai-stream-area" style="display:none;" class="mb-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-blue-200 border-t-blue-600" id="ai-stream-spinner"></div>
+                    <span class="text-sm text-blue-600 font-medium" id="ai-stream-status">AI 正在生成题目...</span>
+                </div>
+                <div id="ai-stream-box" style="background:#1e1e2e;color:#a6e3a1;border-radius:12px;padding:16px;font-family:'Cascadia Code','Fira Code',monospace;font-size:13px;line-height:1.6;max-height:500px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;border:1px solid #313244;box-shadow:0 4px 20px rgba(0,0,0,0.15);"></div>
+            </div>
+
+            
+            <!-- Generated Questions Preview -->
+            <div id="ai-result-area" style="display:none;">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-bold text-gray-800">生成结果</h3>
+                    <button type="button" class="btn btn-success" onclick="importAIQuestions()" id="ai-import-btn">
+                        <i class="fas fa-download mr-1"></i>导入题库
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="importAsExam()" id="ai-exam-btn" style="display:none;">
+                        <i class="fas fa-file-alt mr-1"></i>导入为试卷
+                    </button>
+                </div>
+                <div id="ai-questions-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Loading indicator (fallback) -->
+            <div id="ai-loading" style="display:none;" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+                <p class="text-gray-500">AI 正在生成题目，请稍候...</p>
+                <p class="text-xs text-gray-400 mt-1">通常需要 10-30 秒</p>
+            </div>
+
+        </div><!-- end ai-tab -->
+
+        <!-- Site Settings Tab -->
+        <div id="ads-tab" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">广告管理</h2>
+            <button type="button" class="btn btn-primary mb-6" onclick="showAddAd()"><i class="fas fa-plus mr-1"></i> 添加广告</button>
+            <div class="bg-white rounded-xl border p-6 mb-6">
+                <div id="ads-list" class="space-y-4">
+                    <p class="text-gray-400 text-center py-8">加载中...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="site-settings-tab" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">系统设置</h2>
+            <div class="bg-white rounded-xl border p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-door-open mr-2 text-blue-500"></i>登录与注册控制</h3>
+                <p class="text-sm text-gray-500 mb-6">控制前台登录页面显示哪些登录方式，以及是否允许新用户自助注册。</p>
+                <div class="space-y-4">
+                    <label class="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" id="ss-student-id-login" class="w-5 h-5 text-blue-600 rounded">
+                        <div><div class="font-medium text-gray-800">允许学号登录</div><div class="text-xs text-gray-400">开启后，学生可以使用学号+密码登录</div></div>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" id="ss-account-login" class="w-5 h-5 text-blue-600 rounded">
+                        <div><div class="font-medium text-gray-800">允许账号登录</div><div class="text-xs text-gray-400">开启后，学生可以使用用户名+密码登录</div></div>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" id="ss-allow-register" class="w-5 h-5 text-blue-600 rounded">
+                        <div><div class="font-medium text-gray-800">允许自助注册</div><div class="text-xs text-gray-400">关闭后，新用户无法自行注册账号，需由管理员添加</div></div>
+                    </label>
+                </div>
+                <div class="mt-6 flex items-center gap-3">
+                    <button class="btn btn-primary" onclick="saveSiteSettings()"><i class="fas fa-save mr-1"></i> 保存设置</button>
+                    <span id="site-settings-msg" class="text-sm text-gray-400"></span>
+                </div>
+            </div>
+        </div>
+        </div><!-- end admin-layout -->
+    <script>
+        // ============================================================
+        // Tab Switching
+        // ============================================================
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            if (el) el.classList.add('active');
+            if (tabId === 'ai-tab') loadTextbooks();
+        }
+
+        // ============================================================
+        // Questions Management
+        // ============================================================
+        let currentFilter = '';
+        const typeLabels = {single:'单选',multiple:'多选',shared:'共用题干',case:'案例分析'};
+        const typeBadgeClass = {single:'badge-single',multiple:'badge-multiple',shared:'badge-shared',case:'badge-case'};
+
+        function filterQuestions(type) {
+            currentFilter = type;
+            document.querySelectorAll('.q-filter').forEach(b => {
+                b.classList.toggle('active', b.dataset.type === type);
+                if (b.dataset.type === type) { b.style.background = '#3182ce'; b.style.color = 'white'; b.style.borderColor = '#3182ce'; }
+                else { b.style.background = 'white'; b.style.color = '#4a5568'; b.style.borderColor = '#e2e8f0'; }
+            });
+            loadQuestions();
+        }
+
+        async function loadQuestions() {
+            const catFilter = document.getElementById('category-filter')?.value || '';
+            let url = '/api/admin/questions?';
+            const params = [];
+            if (currentFilter) params.push(`q_type=${currentFilter}`);
+            if (catFilter) params.push(`category=${encodeURIComponent(catFilter)}`);
+            if (params.length) url += params.join('&') + '&size=1000';
+            else url += 'size=1000';
+            const resp = await fetch(url);
+            const data = await resp.json();
+            const container = document.getElementById('questions-list');
+
+            if (data.items.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8">暂无试题</p>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th style="width:36px"><input type="checkbox" id="q-select-all" onchange="toggleAllQuestions(this)"></th><th>ID</th><th>题型</th><th>分类</th><th>题目内容</th><th>分值</th><th>操作</th></tr></thead><tbody>';
+            data.items.forEach(q => {
+                const content = q.content.length > 60 ? q.content.substring(0, 60) + '...' : q.content;
+                const hasImages = q.images && q.images !== '[]' && q.images !== '';
+                const imgIcon = hasImages ? ' <i class="fas fa-image text-blue-400" title="含图片"></i>' : '';
+                html += `<tr>
+                    <td><input type="checkbox" class="q-checkbox" value="${q.id}" onchange="updateQSelection()"></td>
+                    <td>${q.id}</td>
+                    <td><span class="badge ${typeBadgeClass[q.type]}">${typeLabels[q.type]}</span></td>
+                    <td>${q.category || '-'}</td>
+                    <td>${escapeHtml(content)}${imgIcon}</td>
+                    <td>${q.score}</td>
+                    <td>
+                        <button class="btn btn-outline text-xs" onclick="editQuestion(${q.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger text-xs" onclick="deleteQuestion(${q.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function showAddQuestion() {
+            document.getElementById('question-modal-title').textContent = '添加试题';
+            document.getElementById('q-edit-id').value = '';
+            document.getElementById('question-form').reset();
+            document.getElementById('q-score').value = '1';
+            document.getElementById('sub-questions-section').style.display = 'none';
+            document.getElementById('options-section').style.display = 'block';
+            uploadedImages = [];
+            document.getElementById('q-image-previews').innerHTML = '';
+            initOptions(5);
+            document.getElementById('question-modal').style.display = 'flex';
+        }
+
+        async function editQuestion(id) {
+            const resp = await fetch(`/api/admin/questions?q_type=&page=1&size=1000`);
+            const data = await resp.json();
+            const q = data.items.find(x => x.id === id);
+            if (!q) return;
+
+            document.getElementById('question-modal-title').textContent = '编辑试题';
+            document.getElementById('q-edit-id').value = q.id;
+            document.getElementById('q-type').value = q.type;
+            document.getElementById('q-category').value = q.category || '';
+            document.getElementById('q-content').value = q.content;
+            document.getElementById('q-answer').value = q.answer;
+            document.getElementById('q-explanation').value = q.explanation || '';
+            document.getElementById('q-score').value = q.score;
+
+            onQuestionTypeChange();
+
+            if (q.type === 'single' || q.type === 'multiple') {
+                const opts = JSON.parse(q.options || '[]');
+                initOptions(opts.length || 5);
+                opts.forEach((opt, i) => {
+                    document.querySelector(`#opt-label-${i}`).value = opt.label;
+                    document.querySelector(`#opt-text-${i}`).value = opt.text;
+                });
+            } else {
+                const subs = JSON.parse(q.sub_questions || '[]');
+                renderSubQuestionsForEdit(subs);
+            }
+
+            document.getElementById('question-modal').style.display = 'flex';
+        }
+
+        function initOptions(count) {
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            const labels = 'ABCDEFGHIJ';
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `<div class="option-row">
+                    <input id="opt-label-${i}" class="form-input" style="width:50px" value="${labels[i]}" maxlength="1">
+                    <input id="opt-text-${i}" class="form-input" placeholder="选项内容">
+                </div>`;
+            }
+        }
+
+        function addOption() {
+            const container = document.getElementById('options-container');
+            const count = container.children.length;
+            const labels = 'ABCDEFGHIJ';
+            if (count >= 10) return;
+            const div = document.createElement('div');
+            div.className = 'option-row';
+            div.innerHTML = `<input id="opt-label-${count}" class="form-input" style="width:50px" value="${labels[count]}" maxlength="1">
+                    <input id="opt-text-${count}" class="form-input" placeholder="选项内容">`;
+            container.appendChild(div);
+        }
+
+        function onQuestionTypeChange() {
+            const type = document.getElementById('q-type').value;
+            const optsSection = document.getElementById('options-section');
+            const subsSection = document.getElementById('sub-questions-section');
+
+            if (type === 'shared' || type === 'case') {
+                optsSection.style.display = 'none';
+                subsSection.style.display = 'block';
+                if (document.getElementById('sub-questions-container').children.length === 0) {
+                    addSubQuestion();
+                }
+            } else {
+                optsSection.style.display = 'block';
+                subsSection.style.display = 'none';
+            }
+        }
+
+        let subQCounter = 0;
+        function addSubQuestion() {
+            const container = document.getElementById('sub-questions-container');
+            const idx = subQCounter++;
+            const div = document.createElement('div');
+            div.className = 'sub-question-block';
+            div.id = `sub-q-${idx}`;
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-semibold text-gray-600">提问 ${container.children.length + 1}</span>
+                    <button type="button" class="text-red-400 hover:text-red-600 text-sm" onclick="this.closest('.sub-question-block').remove()">删除</button>
+                </div>
+                <div class="mb-2">
+                    <input class="form-input sub-content" placeholder="提问内容">
+                </div>
+                <div class="sub-options">
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="A" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="B" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="C" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="D" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="E" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="F" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="G" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                    <div class="option-row"><input class="form-input sub-opt-label" style="width:50px" value="H" maxlength="1"><input class="form-input sub-opt-text" placeholder="选项内容"><input class="form-input sub-opt-weight" style="width:60px" placeholder="权重" type="number" step="0.1" min="0" title="选项权重（案例分析题专用，留空则等权）"></div>
+                </div>
+                <div class="mt-2">
+                    <input class="form-input sub-answer" placeholder="答案 (如: A 或 ABCD)">
+                </div>`;
+            container.appendChild(div);
+        }
+
+        function renderSubQuestionsForEdit(subs) {
+            const container = document.getElementById('sub-questions-container');
+            container.innerHTML = '';
+            subQCounter = 0;
+            subs.forEach(sub => {
+                addSubQuestion();
+                const block = container.lastElementChild;
+                block.querySelector('.sub-content').value = sub.content || '';
+                block.querySelector('.sub-answer').value = sub.answer || '';
+                const optRows = block.querySelectorAll('.option-row');
+                const subOpts = sub.options || [];
+                optRows.forEach((row, i) => {
+                    if (subOpts[i]) {
+                        row.querySelector('.sub-opt-label').value = subOpts[i].label;
+                        row.querySelector('.sub-opt-text').value = subOpts[i].text;
+                        const weightInput = row.querySelector('.sub-opt-weight');
+                        if (weightInput && subOpts[i].weight !== undefined && subOpts[i].weight !== null) weightInput.value = subOpts[i].weight;
+                    }
+                });
+            });
+        }
+
+        async function saveQuestion(e) {
+            e.preventDefault();
+            const type = document.getElementById('q-type').value;
+            const editId = document.getElementById('q-edit-id').value;
+
+            const payload = {
+                type: type,
+                category: document.getElementById('q-category').value,
+                content: document.getElementById('q-content').value,
+                answer: document.getElementById('q-answer').value,
+                explanation: document.getElementById('q-explanation').value,
+                score: parseFloat(document.getElementById('q-score').value),
+            };
+
+            if (type === 'single' || type === 'multiple') {
+                const opts = [];
+                document.querySelectorAll('#options-container .option-row').forEach(row => {
+                    const label = row.querySelector('input:first-child').value;
+                    const text = row.querySelector('input:last-child').value;
+                    if (label && text) opts.push({label, text});
+                });
+                payload.options = opts;
+                payload.sub_questions = [];
+            } else {
+                payload.options = [];
+                const subs = [];
+                document.querySelectorAll('#sub-questions-container .sub-question-block').forEach(block => {
+                    const content = block.querySelector('.sub-content').value;
+                    const answer = block.querySelector('.sub-answer').value;
+                    const options = [];
+                    block.querySelectorAll('.option-row').forEach(row => {
+                        const label = row.querySelector('.sub-opt-label').value;
+                        const text = row.querySelector('.sub-opt-text').value;
+                        const weightInput = row.querySelector('.sub-opt-weight');
+                        const weight = weightInput && weightInput.value ? parseFloat(weightInput.value) : null;
+                        if (label && text) {
+                            const opt = {label, text};
+                            if (weight !== null && !isNaN(weight)) opt.weight = weight;
+                            options.push(opt);
+                        }
+                    });
+                    if (content) subs.push({content, options, answer});
+                });
+                payload.sub_questions = subs;
+            }
+
+            const url = editId ? `/api/admin/questions/${editId}` : '/api/admin/questions';
+            const method = editId ? 'PUT' : 'POST';
+
+            const resp = await fetch(url, {
+                method: method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (resp.ok) {
+                closeQuestionModal();
+                loadQuestions();
+            } else {
+                const data = await resp.json();
+                alert(data.error || '保存失败');
+            }
+        }
+
+        async function deleteQuestion(id) {
+            if (!confirm('确定要删除这道题吗？')) return;
+            await fetch(`/api/admin/questions/${id}`, {method: 'DELETE'});
+            loadQuestions();
+        }
+
+        // --- Batch selection for questions ---
+        function toggleAllQuestions(masterCb) {
+            document.querySelectorAll('.q-checkbox').forEach(cb => cb.checked = masterCb.checked);
+            updateQSelection();
+        }
+        function updateQSelection() {
+            const checked = document.querySelectorAll('.q-checkbox:checked');
+            const countEl = document.getElementById('q-selected-count');
+            const btnEl = document.getElementById('q-batch-delete-btn');
+            const selectAll = document.getElementById('q-select-all');
+            const total = document.querySelectorAll('.q-checkbox').length;
+            if (checked.length > 0) {
+                countEl.style.display = '';
+                btnEl.style.display = '';
+                countEl.innerHTML = '已选 <b>' + checked.length + '</b> 项';
+            } else {
+                countEl.style.display = 'none';
+                btnEl.style.display = 'none';
+            }
+            if (selectAll) selectAll.checked = (checked.length === total && total > 0);
+        }
+        async function batchDeleteQuestions() {
+            const ids = Array.from(document.querySelectorAll('.q-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (ids.length === 0) { alert('请先选择题要删除的题目'); return; }
+            if (!confirm('确定要删除选中的 ' + ids.length + ' 道题目吗？此操作不可恢复。')) return;
+            const resp = await fetch('/api/admin/questions/batch-delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids: ids})
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert('成功删除 ' + data.deleted + ' 道题目');
+                loadQuestions();
+            } else {
+                alert('删除失败: ' + (data.error || '未知错误'));
+            }
+        }
+
+        function closeQuestionModal() {
+            document.getElementById('question-modal').style.display = 'none';
+        }
+
+        // ============================================================
+        // Exams Management
+        // ============================================================
+        let selectedQuestionIds = new Set();
+        let allQuestionsCache = [];
+
+        async function loadExams() {
+            const resp = await fetch('/api/admin/exams');
+            const data = await resp.json();
+            const container = document.getElementById('exams-list');
+
+            if (data.items.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8">暂无考试</p>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th style="width:36px"><input type="checkbox" id="e-select-all" onchange="toggleAllExams(this)"></th><th>ID</th><th>名称</th><th>题数</th><th>时长</th><th>满分/合格</th><th>模式</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+            data.items.forEach(e => {
+                const statusBadge = e.status === 'active'
+                    ? '<span class="badge badge-active">已发布</span>'
+                    : '<span class="badge badge-draft">草稿</span>';
+                const toggleBtn = e.status === 'active'
+                    ? `<button class="btn-toggle-publish unpublish" onclick="toggleExamStatus(${e.id},'active')">下架</button>`
+                    : `<button class="btn-toggle-publish publish" onclick="toggleExamStatus(${e.id},'draft')">发布</button>`;
+                html += `<tr>
+                    <td><input type="checkbox" class="e-checkbox" value="${e.id}" onchange="updateESelection()"></td>
+                    <td>${e.id}</td>
+                    <td class="font-medium">${escapeHtml(e.title)}</td>
+                    <td>${e.question_count}</td>
+                    <td>${e.duration}分钟</td>
+                    <td>${e.total_score}/${e.pass_score}</td>
+                    <td>${e.is_practice ? '<span class="badge badge-shared">练习</span>' : '<span class="badge badge-single">考试</span>'}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="flex gap-1">
+                            ${toggleBtn}
+                            <button class="btn btn-outline text-xs" onclick="editExam(${e.id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-outline text-xs" onclick="exportExam(${e.id},'exam')"><i class="fas fa-file-word"></i> 试题卷</button> 
+                            <button class="btn btn-outline text-xs" onclick="exportExam(${e.id},'answer')"><i class="fas fa-file-alt"></i> 答案卷</button> 
+                            <button class="btn btn-outline text-xs" onclick="exportExam(${e.id},'all')"><i class="fas fa-file-export"></i> 完整卷</button> 
+                            <button class="btn btn-danger text-xs" onclick="deleteExam(${e.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function showAddExam() {
+            document.getElementById('exam-modal-title').textContent = '创建考试';
+            document.getElementById('e-edit-id').value = '';
+            document.getElementById('e-title').value = '';
+            document.getElementById('e-description').value = '';
+            document.getElementById('e-duration').value = '120';
+            document.getElementById('e-total-score').value = '100';
+            document.getElementById('e-pass-score').value = '60';
+            document.getElementById('e-practice').checked = false;
+            document.getElementById('ts-single').value = 1;
+            document.getElementById('ts-multiple').value = 1;
+            document.getElementById('ts-shared').value = 1;
+            document.getElementById('ts-case').value = 1;
+            document.getElementById('score-preview').innerHTML = '总分: 0';
+            selectedQuestionIds.clear();
+            document.getElementById('selected-count').textContent = '0';
+            loadQuestionSets();
+            loadExamQuestionPool();
+            document.getElementById('exam-modal').style.display = 'flex';
+        }
+
+        async function editExam(id) {
+            const resp = await fetch('/api/admin/exams');
+            const data = await resp.json();
+            const exam = data.items.find(e => e.id === id);
+            if (!exam) return;
+
+            document.getElementById('exam-modal-title').textContent = '编辑考试';
+            document.getElementById('e-edit-id').value = exam.id;
+            document.getElementById('e-title').value = exam.title;
+            document.getElementById('e-description').value = exam.description || '';
+            document.getElementById('e-duration').value = exam.duration;
+            document.getElementById('e-total-score').value = exam.total_score;
+            document.getElementById('e-pass-score').value = exam.pass_score;
+            document.getElementById('e-practice').checked = !!exam.is_practice;
+
+            // Load existing question IDs so they are pre-checked
+            selectedQuestionIds.clear();
+            try {
+                const qResp = await fetch(`/api/admin/exams/${exam.id}/questions`);
+                const qData = await qResp.json();
+                (qData.question_ids || []).forEach(qid => selectedQuestionIds.add(qid));
+                // Load type scores
+                const ts = qData.type_scores || {};
+                if (ts.single !== undefined) document.getElementById("ts-single").value = ts.single;
+                if (ts.multiple !== undefined) document.getElementById("ts-multiple").value = ts.multiple;
+                if (ts.shared !== undefined) document.getElementById("ts-shared").value = ts.shared;
+                if (ts.case !== undefined) document.getElementById("ts-case").value = ts.case;
+            } catch (e) { console.error('Failed to load exam questions:', e); }
+
+            loadQuestionSets();
+            await loadExamQuestionPool();
+            document.getElementById('exam-modal').style.display = 'flex';
+        }
+
+        async function loadExamQuestionPool() {
+            const filter = document.getElementById('e-q-filter').value;
+            const setFilter = document.getElementById('e-set-filter')?.value || '';
+            let url = '/api/admin/questions?size=1000';
+            const params = [];
+            if (filter) params.push(`q_type=${filter}`);
+            if (setFilter) params.push(`source_set=${encodeURIComponent(setFilter)}`);
+            if (params.length) url += '&' + params.join('&');
+
+            const resp = await fetch(url);
+            const data = await resp.json();
+            allQuestionsCache = data.items;
+
+            const pool = document.getElementById('exam-question-pool');
+            let html = '';
+            data.items.forEach(q => {
+                const checked = selectedQuestionIds.has(q.id) ? 'checked' : '';
+                const content = q.content.length > 50 ? q.content.substring(0, 50) + '...' : q.content;
+                const setTag = q.source_set ? `<span class="text-xs text-purple-500">[${escapeHtml(q.source_set)}]</span>` : '';
+                html += `<label class="q-pool-item flex items-center gap-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer" data-type="${q.type}">
+                    <input type="checkbox" value="${q.id}" ${checked} onchange="toggleExamQuestion(${q.id})">
+                    <span class="badge ${typeBadgeClass[q.type]}" style="font-size:10px">${typeLabels[q.type]}</span>
+                    <span class="text-gray-600">${escapeHtml(content)}</span>
+                    ${setTag}
+                </label>`;
+            });
+            pool.innerHTML = html || '<p class="text-gray-400 text-center">暂无试题</p>';
+            updateSelectedCount();
+        }
+
+        async function loadQuestionSets() {
+            try {
+                const resp = await fetch('/api/admin/question-sets');
+                const data = await resp.json();
+                const select = document.getElementById('e-set-filter');
+                if (!select) return;
+
+                // Keep the first option (全部套卷)
+                select.innerHTML = '<option value="">全部套卷</option>';
+
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(set => {
+                        const opt = document.createElement('option');
+                        opt.value = set.source_set;
+                        opt.textContent = `${set.source_set} (${set.total_count}题)`;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to load question sets:', err);
+            }
+        }
+
+        function toggleExamQuestion(id) {
+            if (selectedQuestionIds.has(id)) selectedQuestionIds.delete(id);
+            else selectedQuestionIds.add(id);
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            updateScorePreview();
+            document.getElementById('selected-count').textContent = selectedQuestionIds.size;
+        }
+
+        function updateScorePreview() {
+            const counts = {single: 0, multiple: 0, shared: 0, case: 0};
+            document.querySelectorAll('#exam-question-pool .q-pool-item').forEach(el => {
+                const cb = el.querySelector('input[type=checkbox]');
+                if (cb && cb.checked) {
+                    const type = el.dataset.type;
+                    if (counts[type] !== undefined) counts[type]++;
+                }
+            });
+            const ts = {
+                single: parseFloat(document.getElementById('ts-single').value) || 0,
+                multiple: parseFloat(document.getElementById('ts-multiple').value) || 0,
+                shared: parseFloat(document.getElementById('ts-shared').value) || 0,
+                case: parseFloat(document.getElementById('ts-case').value) || 0,
+            };
+            const total = counts.single * ts.single + counts.multiple * ts.multiple +
+                          counts.shared * ts.shared + counts.case * ts.case;
+            const parts = [];
+            if (counts.single) parts.push('单选' + counts.single + 'x' + ts.single + '=' + (counts.single*ts.single).toFixed(1));
+            if (counts.multiple) parts.push('多选' + counts.multiple + 'x' + ts.multiple + '=' + (counts.multiple*ts.multiple).toFixed(1));
+            if (counts.shared) parts.push('共用' + counts.shared + 'x' + ts.shared + '=' + (counts.shared*ts.shared).toFixed(1));
+            if (counts.case) parts.push('案例' + counts.case + 'x' + ts.case + '=' + (counts.case*ts.case).toFixed(1));
+            document.getElementById('score-preview').innerHTML =
+                '<strong>预估总分: ' + total.toFixed(1) + '</strong>' + (parts.length ? ' <span style="color:#718096;font-size:11px">(' + parts.join(' + ') + ')</span>' : '');
+        }
+
+        function applyTypeScores() {
+            updateScorePreview();
+            const match = document.getElementById('score-preview').textContent.match(/[\d.]+/);
+            if (match) {
+                document.getElementById('e-total-score').value = parseFloat(match[0]);
+            }
+        }
+
+        async function saveExam(e) {
+            e.preventDefault();
+            const editId = document.getElementById('e-edit-id').value;
+            const typeScores = {
+                single: parseFloat(document.getElementById("ts-single").value) || 0,
+                multiple: parseFloat(document.getElementById("ts-multiple").value) || 0,
+                shared: parseFloat(document.getElementById("ts-shared").value) || 0,
+                case: parseFloat(document.getElementById("ts-case").value) || 0,
+            };
+            const payload = {
+                title: document.getElementById('e-title').value,
+                description: document.getElementById('e-description').value,
+                duration: parseInt(document.getElementById('e-duration').value),
+                total_score: parseFloat(document.getElementById('e-total-score').value),
+                pass_score: parseFloat(document.getElementById('e-pass-score').value),
+                is_practice: document.getElementById('e-practice').checked,
+                question_ids: Array.from(selectedQuestionIds),
+                type_scores: typeScores,
+            };
+
+            const url = editId ? `/api/admin/exams/${editId}` : '/api/admin/exams';
+            const method = editId ? 'PUT' : 'POST';
+
+            const resp = await fetch(url, {
+                method: method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (resp.ok) {
+                closeExamModal();
+                loadExams();
+            } else {
+                const data = await resp.json();
+                alert(data.error || '保存失败');
+            }
+        }
+
+        async function deleteExam(id) {
+            if (!confirm('确定要删除这场考试吗？')) return;
+            await fetch(`/api/admin/exams/${id}`, {method: 'DELETE'});
+            loadExams();
+        }
+
+        // --- Batch selection for exams ---
+        function toggleAllExams(masterCb) {
+            document.querySelectorAll('.e-checkbox').forEach(cb => cb.checked = masterCb.checked);
+            updateESelection();
+        }
+        function updateESelection() {
+            const checked = document.querySelectorAll('.e-checkbox:checked');
+            const countEl = document.getElementById('e-selected-count');
+            const btnEl = document.getElementById('e-batch-delete-btn');
+            const selectAll = document.getElementById('e-select-all');
+            const total = document.querySelectorAll('.e-checkbox').length;
+            if (checked.length > 0) {
+                countEl.style.display = '';
+                btnEl.style.display = '';
+                countEl.innerHTML = '已选 <b>' + checked.length + '</b> 项';
+            } else {
+                countEl.style.display = 'none';
+                btnEl.style.display = 'none';
+            }
+            if (selectAll) selectAll.checked = (checked.length === total && total > 0);
+        }
+        async function batchDeleteExams() {
+            const ids = Array.from(document.querySelectorAll('.e-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (ids.length === 0) { alert('请先选择要删除的考试'); return; }
+            if (!confirm('确定要删除选中的 ' + ids.length + ' 场考试吗？相关考试记录也将一并删除，此操作不可恢复。')) return;
+            const resp = await fetch('/api/admin/exams/batch-delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids: ids})
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert('成功删除 ' + data.deleted + ' 场考试');
+                loadExams();
+            } else {
+                alert('删除失败: ' + (data.error || '未知错误'));
+            }
+        }
+
+        function closeExamModal() {
+            document.getElementById('exam-modal').style.display = 'none';
+        }
+
+        // ============================================================
+        // Users Management
+        // ============================================================
+        // Store all users for tab switching
+        var _allUsers = [];
+
+        async function loadUsers() {
+            const resp = await fetch('/api/admin/users');
+            const data = await resp.json();
+            _allUsers = data.items || [];
+
+            var accountUsers = _allUsers.filter(function(u) { return u.login_type !== 'student_id'; });
+            var studentUsers = _allUsers.filter(function(u) { return u.login_type === 'student_id'; });
+
+            document.getElementById('account-count').textContent = '(' + accountUsers.length + ')';
+            document.getElementById('student-count').textContent = '(' + studentUsers.length + ')';
+
+            renderUserTable('account', accountUsers);
+            renderUserTable('student', studentUsers);
+        }
+
+        function renderUserTable(type, users) {
+            var container = document.getElementById('users-list-' + type);
+            if (users.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8">' + (type === 'account' ? '暂无注册用户' : '暂无学号学员') + '</p>';
+                updateUserSelection();
+                return;
+            }
+
+            var html = '<table class="data-table"><thead><tr><th style="width:36px"><input type="checkbox" id="u-select-all-' + type + '" onchange="toggleAllUsers(this, \''+type+'\')"></th>';
+            if (type === 'student') {
+                html += '<th>ID</th><th>学号</th><th>姓名</th><th>考试次数</th><th>平均分</th><th>操作</th>';
+            } else {
+                html += '<th>ID</th><th>用户名</th><th>学号</th><th>姓名</th><th>考试次数</th><th>平均分</th><th>操作</th>';
+            }
+            html += '</tr></thead><tbody>';
+            users.forEach(function(u) {
+                var sid = u.student_id || '-';
+                var isAdmin = u.role === 'admin';
+                html += '<tr' + (isAdmin ? ' class="bg-yellow-50"' : '') + '><td>' + (isAdmin ? '<i class="fas fa-crown text-yellow-500 text-xs"></i>' : '<input type="checkbox" class="u-checkbox" data-type="' + type + '" value="' + u.id + '" onchange="updateUserSelection()">') + '</td>';
+                if (type === 'student') {
+                    html += '<td>' + u.id + '</td><td><b>' + u.student_id + '</b></td><td>' + (u.real_name || u.username) + '</td>';
+                } else {
+                    html += '<td>' + u.id + '</td><td>' + u.username + '</td><td>' + sid + '</td><td>' + (u.real_name || '-') + '</td>';
+                }
+                html += '<td>' + u.exam_count + '</td>';
+                html += '<td>' + (u.avg_score ? u.avg_score.toFixed(1) : '-') + '</td>';
+                var isAdmin = u.role === 'admin';
+                if (isAdmin) {
+                    html += '<td><span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">管理员</span></td>';
+                } else {
+                    html += '<td><button class="btn btn-outline text-xs" onclick="resetUserPassword(' + u.id + ')"><i class="fas fa-key"></i> 重置密码</button> ';
+                    html += '<button class="btn btn-danger text-xs" onclick="deleteUser(' + u.id + ')"><i class="fas fa-trash"></i></button></td>';
+                }
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            updateUserSelection();
+        }
+
+        function switchUserTab(tab) {
+            document.getElementById('users-account-panel').style.display = tab === 'account' ? 'block' : 'none';
+            document.getElementById('users-student-panel').style.display = tab === 'student' ? 'block' : 'none';
+            document.getElementById('user-tab-account').className = 'btn ' + (tab === 'account' ? 'btn-primary' : 'btn-outline');
+            document.getElementById('user-tab-student').className = 'btn ' + (tab === 'student' ? 'btn-primary' : 'btn-outline');
+        }
+
+        function switchModalMode(mode) {
+            document.getElementById('umode-account-fields').style.display = mode === 'account' ? 'block' : 'none';
+            document.getElementById('umode-student-fields').style.display = mode === 'student_id' ? 'block' : 'none';
+            document.getElementById('umode-account').className = 'btn ' + (mode === 'account' ? 'btn-primary' : 'btn-outline');
+            document.getElementById('umode-student').className = 'btn ' + (mode === 'student_id' ? 'btn-primary' : 'btn-outline');
+            document.getElementById('user-modal-title').textContent = mode === 'account' ? '添加账号用户' : '添加学号学员';
+            // Toggle password required
+            document.getElementById('u-password').placeholder = mode === 'student_id' ? '默认 123456' : '登录密码';
+        }
+
+        function showAddUser(mode) {
+            mode = mode || 'account';
+            document.getElementById('u-username').value = '';
+            document.getElementById('u-realname').value = '';
+            document.getElementById('u-realname-sid').value = '';
+            document.getElementById('u-password').value = mode === 'student_id' ? '123456' : '';
+            document.getElementById('u-role').value = 'student';
+            document.getElementById('u-student-id').value = '';
+            if (document.getElementById('u-student-id-opt')) document.getElementById('u-student-id-opt').value = '';
+            switchModalMode(mode);
+            document.getElementById('user-modal').style.display = 'flex';
+        }
+
+        async function saveUser(e) {
+            e.preventDefault();
+            var mode = document.getElementById('umode-student-fields').style.display !== 'none' ? 'student_id' : 'account';
+            var body;
+            if (mode === 'student_id') {
+                var sid = document.getElementById('u-student-id').value.trim();
+                if (!sid) { alert('学号不能为空'); return; }
+                body = {
+                    username: sid,
+                    real_name: document.getElementById('u-realname-sid').value,
+                    password: document.getElementById('u-password').value || '123456',
+                    role: document.getElementById('u-role').value,
+                    student_id: sid,
+                };
+            } else {
+                var uname = document.getElementById('u-username').value.trim();
+                if (!uname) { alert('用户名不能为空'); return; }
+                body = {
+                    username: uname,
+                    real_name: document.getElementById('u-realname').value,
+                    password: document.getElementById('u-password').value,
+                    role: document.getElementById('u-role').value,
+                    student_id: document.getElementById('u-student-id-opt') ? document.getElementById('u-student-id-opt').value : '',
+                };
+            }
+            if (!body.password) { alert('密码不能为空'); return; }
+            const resp = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            if (resp.ok) {
+                closeUserModal();
+                loadUsers();
+            } else {
+                const data = await resp.json();
+                alert(data.error || '保存失败');
+            }
+        }
+
+        async function resetUserPassword(id) {
+            const newPwd = prompt('输入新密码（至少6位）：');
+            if (!newPwd || newPwd.length < 6) { alert('密码至少6位'); return; }
+            await fetch(`/api/admin/users/${id}/reset-password`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({new_password: newPwd})
+            });
+            alert('密码已重置');
+        }
+
+        function toggleAllUsers(masterCb, type) {
+            // Toggle all checkboxes across both tabs (not just current tab)
+            document.querySelectorAll('.u-checkbox').forEach(cb => cb.checked = masterCb.checked);
+            // Sync both select-all checkboxes
+            document.querySelectorAll('[id^="u-select-all-"]').forEach(sa => sa.checked = masterCb.checked);
+            updateUserSelection();
+        }
+        function updateUserSelection() {
+            const checked = document.querySelectorAll('.u-checkbox:checked');
+            const countEl = document.getElementById('u-selected-count');
+            const btnEl = document.getElementById('u-batch-delete-btn');
+            const total = document.querySelectorAll('.u-checkbox').length;
+            if (checked.length > 0) {
+                countEl.style.display = '';
+                btnEl.style.display = '';
+                countEl.innerHTML = '已选 <b>' + checked.length + '</b> 项';
+            } else {
+                countEl.style.display = 'none';
+                btnEl.style.display = 'none';
+            }
+            // Sync both select-all checkboxes: all checked = checked, partial = unchecked
+            var allChecked = total > 0 && checked.length === total;
+            document.querySelectorAll('[id^="u-select-all-"]').forEach(sa => sa.checked = allChecked);
+        }
+        async function batchDeleteUsers() {
+            const ids = Array.from(document.querySelectorAll('.u-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (ids.length === 0) { alert('请先选择要删除的用户'); return; }
+            if (!confirm('确定要删除选中的 ' + ids.length + ' 个用户吗？此操作不可恢复。')) return;
+            const resp = await fetch('/api/admin/users/batch-delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids: ids})
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert('成功删除 ' + data.deleted + ' 个用户');
+                loadUsers();
+            } else {
+                alert('删除失败: ' + (data.error || '未知错误'));
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('确定要删除该用户吗？')) return;
+            await fetch(`/api/admin/users/${id}`, {method: 'DELETE'});
+            loadUsers();
+        }
+
+        function closeUserModal() {
+            document.getElementById('user-modal').style.display = 'none';
+        }
+
+        async function importUsersExcel(input) {
+            const file = input.files[0];
+            if (!file) return;
+            input.value = '';
+
+            const msgDiv = document.getElementById('user-import-msg');
+            msgDiv.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const resp = await fetch('/api/admin/users/import-excel', {
+                    method: 'POST',
+                    
+                    body: formData
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    let msgHtml = '<div style="padding:12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;color:#276749;">';
+                    msgHtml += '<i class="fas fa-check-circle mr-1"></i> 成功导入 <b>' + data.imported + '</b> 个用户';
+                    if (data.errors && data.errors.length > 0) {
+                        msgHtml += '<div style="margin-top:8px;padding:8px;background:#fffbeb;border:1px solid #f6e05e;border-radius:6px;color:#975a16;font-size:12px;">';
+                        msgHtml += '<i class="fas fa-exclamation-triangle mr-1"></i> 以下行有问题:<br>';
+                        msgHtml += data.errors.slice(0, 20).map(e => '&nbsp;&nbsp;• ' + e).join('<br>');
+                        if (data.errors.length > 20) msgHtml += '<br>&nbsp;&nbsp;... 还有 ' + (data.errors.length - 20) + ' 条';
+                        msgHtml += '</div>';
+                    }
+                    msgHtml += '</div>';
+                    msgDiv.innerHTML = msgHtml;
+                    msgDiv.style.display = 'block';
+                    loadUsers();
+                } else {
+                    msgDiv.innerHTML = '<div style="padding:12px;background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;color:#c53030;"><i class="fas fa-times-circle mr-1"></i> ' + (data.error || '导入失败') + '</div>';
+                    msgDiv.style.display = 'block';
+                }
+            } catch (e) {
+                msgDiv.innerHTML = '<div style="padding:12px;background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;color:#c53030;"><i class="fas fa-times-circle mr-1"></i> 导入失败: ' + e.message + '</div>';
+                msgDiv.style.display = 'block';
+            }
+        }
+
+        // ============================================================
+        // Import
+        // ============================================================
+        async function importJSON() {
+            const fileInput = document.getElementById('json-file');
+            const resultDiv = document.getElementById('json-result');
+            if (!fileInput.files.length) { resultDiv.innerHTML = '<span class="text-red-500">请选择文件</span>'; return; }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const resp = await fetch('/api/admin/import/json', {method: 'POST', body: formData});
+            const data = await resp.json();
+            if (data.success) {
+                resultDiv.innerHTML = `<span class="text-green-600">成功导入 ${data.imported} 道试题（共用题干/案例分析按组计）！</span>`;
+                if (data.errors && data.errors.length) {
+                    resultDiv.innerHTML += `<br><span class="text-orange-500">部分错误：${data.errors.join('; ')}</span>`;
+                }
+                fileInput.value = '';
+            } else {
+                resultDiv.innerHTML = `<span class="text-red-500">${data.error}</span>`;
+            }
+        }
+
+        async function importExcel() {
+            const fileInput = document.getElementById('excel-file');
+            const resultDiv = document.getElementById('excel-result');
+            if (!fileInput.files.length) { resultDiv.innerHTML = '<span class="text-red-500">请选择文件</span>'; return; }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const resp = await fetch('/api/admin/import/excel', {method: 'POST', body: formData});
+            const data = await resp.json();
+            if (data.success) {
+                resultDiv.innerHTML = `<span class="text-green-600">成功导入 ${data.imported} 道试题（共用题干/案例分析按组计）！</span>`;
+                if (data.errors && data.errors.length) {
+                    resultDiv.innerHTML += `<br><span class="text-orange-500">部分错误：${data.errors.join('; ')}</span>`;
+                }
+                fileInput.value = '';
+            } else {
+                resultDiv.innerHTML = `<span class="text-red-500">${data.error}</span>`;
+            }
+        }
+
+        // ============================================================
+        // Import Tab Switching
+        // ============================================================
+        function switchImportTab(panelId, el) {
+            document.querySelectorAll('.import-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.import-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(panelId).classList.add('active');
+            el.classList.add('active');
+        }
+
+        // ============================================================
+        // TXT Import
+        // ============================================================
+        async function importTXT() {
+            const fileInput = document.getElementById('txt-file');
+            const resultDiv = document.getElementById('txt-result');
+            const sourceSet = document.getElementById('txt-source-set')?.value || '';
+            if (!fileInput.files.length) { resultDiv.innerHTML = '<span class="text-red-500">请选择文件</span>'; return; }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            if (sourceSet) formData.append('source_set', sourceSet);
+
+            resultDiv.innerHTML = '<span class="text-blue-500"><i class="fas fa-spinner fa-spin mr-1"></i>正在导入...</span>';
+            const resp = await fetch('/api/admin/import/txt', {method: 'POST', body: formData});
+            const data = await resp.json();
+            if (data.success) {
+                let msg = `✓ 成功导入 ${data.imported} 道试题（共用题干/案例分析按组计）`;
+                if (sourceSet) msg += `（套卷：${sourceSet}）`;
+                if (data.message) msg += ' - ' + data.message;
+                resultDiv.innerHTML = `<span class="text-green-600">${msg}！</span>`;
+                if (data.errors && data.errors.length) {
+                    resultDiv.innerHTML += `<br><span class="text-orange-500">⚠ ${data.errors.length} 条错误：${data.errors.slice(0,5).join('; ')}${data.errors.length > 5 ? '...' : ''}</span>`;
+                }
+                fileInput.value = '';
+                if (sourceSet) document.getElementById('txt-source-set').value = '';
+            } else {
+                resultDiv.innerHTML = `<span class="text-red-500">✗ ${data.error || '导入失败'}</span>`;
+            }
+        }
+
+        // ============================================================
+        // Word Import
+        // ============================================================
+        async function importWord() {
+            const fileInput = document.getElementById('word-file');
+            const resultDiv = document.getElementById('word-result');
+            const sourceSet = document.getElementById('word-source-set')?.value || '';
+            if (!fileInput.files.length) { resultDiv.innerHTML = '<span class="text-red-500">请选择文件</span>'; return; }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            if (sourceSet) formData.append('source_set', sourceSet);
+
+            resultDiv.innerHTML = '<span class="text-blue-500"><i class="fas fa-spinner fa-spin mr-1"></i>正在导入（可能需要较长时间）...</span>';
+            const resp = await fetch('/api/admin/import/word', {method: 'POST', body: formData});
+            const data = await resp.json();
+            if (data.success) {
+                let msg = `✓ 成功导入 ${data.imported} 道试题（共用题干/案例分析按组计）`;
+                if (sourceSet) msg += `（套卷：${sourceSet}）`;
+                if (data.message) msg += ' - ' + data.message;
+                resultDiv.innerHTML = `<span class="text-green-600">${msg}！</span>`;
+                if (data.errors && data.errors.length) {
+                    resultDiv.innerHTML += `<br><span class="text-orange-500">⚠ ${data.errors.length} 条错误：${data.errors.slice(0,5).join('; ')}${data.errors.length > 5 ? '...' : ''}</span>`;
+                }
+                fileInput.value = '';
+                if (sourceSet) document.getElementById('word-source-set').value = '';
+            } else {
+                resultDiv.innerHTML = `<span class="text-red-500">✗ ${data.error || '导入失败'}</span>`;
+            }
+        }
+
+        // ============================================================
+        // Random Question Selection
+        // ============================================================
+        function toggleRandomPanel() {
+            const panel = document.getElementById('random-panel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function randomSelectQuestions() {
+            const typeCounts = {
+                single: parseInt(document.getElementById('random-single').value) || 0,
+                multiple: parseInt(document.getElementById('random-multiple').value) || 0,
+                shared: parseInt(document.getElementById('random-shared').value) || 0,
+                case: parseInt(document.getElementById('random-case').value) || 0
+            };
+
+            const totalCount = Object.values(typeCounts).reduce((a, b) => a + b, 0);
+            const resultDiv = document.getElementById('random-result');
+
+            if (totalCount < 1) {
+                resultDiv.innerHTML = '<span class="text-red-500">请至少输入一种题型的数量</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<span class="text-blue-500"><i class="fas fa-spinner fa-spin mr-1"></i>正在抽题...</span>';
+
+            try {
+                const resp = await fetch('/api/admin/questions/random', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type_counts: typeCounts})
+                });
+                const data = await resp.json();
+
+                if (data.questions && data.questions.length > 0) {
+                    // Add to selected questions
+                    data.questions.forEach(q => selectedQuestionIds.add(q.id));
+                    updateSelectedCount();
+                    await loadExamQuestionPool();
+
+                    const typeNames = {single: '单选', multiple: '多选', shared: '共用题干', case: '案例分析'};
+                    const summary = Object.entries(data.type_counts || typeCounts)
+                        .filter(([_, c]) => c > 0)
+                        .map(([t, c]) => `${typeNames[t]}${c}${(t==='shared'||t==='case')?'组':'道'}`)
+                        .join('、');
+
+                    let availInfo = '';
+                    if (data.available) {
+                        availInfo = `（题库：单选${data.available.single || 0}、多选${data.available.multiple || 0}、共用题干${data.available.shared || 0}、案例${data.available.case || 0}）`;
+                    }
+                    resultDiv.innerHTML = `<span class="text-green-600">✓ 已随机选择 ${data.questions.length} 道题：${summary} ${availInfo}</span>`;
+                } else if (data.error) {
+                    resultDiv.innerHTML = `<span class="text-red-500">✗ ${data.error.replace(/\n/g, '<br>')}</span>`;
+                } else {
+                    resultDiv.innerHTML = '<span class="text-red-500">✗ 抽题失败，未找到符合条件的试题</span>';
+                }
+            } catch (err) {
+                resultDiv.innerHTML = '<span class="text-red-500">✗ 网络错误，请重试</span>';
+            }
+        }
+
+        // ============================================================
+        // Image Upload for Questions
+        // ============================================================
+        let uploadedImages = [];
+
+        async function uploadQuestionImage(input) {
+            if (!input.files.length) return;
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const resp = await fetch('/api/admin/upload/image', {method: 'POST', body: formData});
+                const data = await resp.json();
+                if (data.success) {
+                    uploadedImages.push(data.url);
+                    renderImagePreviews();
+                    // Append image tag to content
+                    const contentEl = document.getElementById('q-content');
+                    contentEl.value += `\n<img src="${data.url}" style="max-width:100%">`;
+                } else {
+                    alert(data.error || '图片上传失败');
+                }
+            } catch(e) {
+                alert('上传失败: ' + e.message);
+            }
+            input.value = '';
+        }
+
+        function renderImagePreviews() {
+            const container = document.getElementById('q-image-previews');
+            container.innerHTML = uploadedImages.map((url, i) =>
+                `<div class="img-preview-item">
+                    <img src="${url}" alt="题目图片">
+                    <button class="img-remove" onclick="removeImage(${i})">&times;</button>
+                </div>`
+            ).join('');
+        }
+
+        function removeImage(index) {
+            uploadedImages.splice(index, 1);
+            renderImagePreviews();
+        }
+
+        // ============================================================
+        // Exam Status Toggle
+        // ============================================================
+        async function toggleExamStatus(id, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+            const action = newStatus === 'active' ? '发布' : '下架';
+            if (!confirm(`确定要${action}该考试吗？`)) return;
+
+            const resp = await fetch(`/api/admin/exams/${id}/status`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({status: newStatus})
+            });
+
+            if (resp.ok) {
+                loadExams();
+            } else {
+                const data = await resp.json();
+                alert(data.error || '操作失败');
+            }
+        }
+
+        // ============================================================
+        // Utility
+        // ============================================================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    
+// Paste import functions
+let lastParsedQuestions = null;
+
+async function previewPaste() {
+    const content = document.getElementById('paste-content').value.trim();
+    if (!content) { alert('请先粘贴试题内容'); return; }
+
+    const preview = document.getElementById('paste-preview');
+    preview.innerHTML = '<div style="text-align:center;padding:40px;color:#718096;"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">正在解析...</p></div>';
+
+    try {
+        const resp = await fetch('/api/admin/import/preview', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text: content})
+        });
+        const data = await resp.json();
+
+        if (data.errors && data.errors.length > 0) {
+            preview.innerHTML = '<div style="color:#e53e3e;padding:8px;background:#fff5f5;border-radius:6px;margin-bottom:8px;">' +
+                '<b>解析错误：</b><br>' + data.errors.map(e => '• ' + e).join('<br>') + '</div>';
+        }
+
+        if (!data.questions || data.questions.length === 0) {
+            preview.innerHTML += '<div style="color:#e53e3e;text-align:center;padding:40px;">未解析到任何试题，请检查格式</div>';
+            return;
+        }
+
+        let html = '<div style="color:#38a169;padding:8px;background:#f0fff4;border-radius:6px;margin-bottom:12px;">' +
+            (() => {
+                let danXuan = (data.questions||[]).filter(q=>q.type==='single').length;
+                let duoXuan = (data.questions||[]).filter(q=>q.type==='multiple').length;
+                let gongYong = (data.questions||[]).filter(q=>q.type==='shared').length;
+                let anLi = (data.questions||[]).filter(q=>q.type==='case').length;
+                let parts = [];
+                if(danXuan) parts.push(danXuan+'道单选');
+                if(duoXuan) parts.push(duoXuan+'道多选');
+                if(gongYong) parts.push(gongYong+'组共用题干');
+                if(anLi) parts.push(anLi+'组案例分析');
+                return '<b>解析成功！</b> 共识别 <b>' + data.total + '</b> 题（' + parts.join('、') + '）</div>';
+            })()
+
+        data.questions.forEach((q, idx) => {
+            const typeColors = {single:'#3182ce', multiple:'#38a169', shared:'#d69e2e', case:'#e53e3e'};
+            const color = typeColors[q.type] || '#718096';
+            html += '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:8px;background:white;">';
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+            html += '<span style="background:' + color + ';color:white;padding:2px 8px;border-radius:4px;font-size:11px;">' + q.type_label + '</span>';
+            if (q.category) html += '<span style="color:#718096;font-size:11px;">' + q.category + '</span>';
+            html += '<span style="margin-left:auto;color:#a0aec0;font-size:11px;">#' + (idx+1) + '</span>';
+            html += '</div>';
+            html += '<div style="font-size:13px;color:#2d3748;margin-bottom:4px;">' + q.content + '</div>';
+            if (q.type === 'shared' || q.type === 'case') {
+                html += '<div style="color:#718096;font-size:12px;">含 ' + q.sub_count + ' 个小题</div>';
+                q.sub_questions.forEach((sq, si) => {
+                    html += '<div style="margin-left:16px;padding:4px 0;border-left:2px solid #e2e8f0;padding-left:8px;margin-top:4px;font-size:12px;">';
+                    html += '<span style="color:#4a5568;">' + (si+1) + '. ' + sq.content + '</span>';
+                    html += ' <span style="color:#38a169;">答案:' + sq.answer + '</span>';
+                    html += '</div>';
+                });
+            } else {
+                html += '<div style="display:flex;gap:12px;font-size:12px;">';
+                html += '<span style="color:#38a169;">答案: ' + q.answer + '</span>';
+                html += '<span style="color:#718096;">' + q.options_count + '个选项</span>';
+                html += '</div>';
+                if (q.explanation) html += '<div style="color:#718096;font-size:11px;margin-top:2px;">解析: ' + q.explanation + '</div>';
+            }
+            html += '</div>';
+        });
+
+        preview.innerHTML = html;
+        lastParsedQuestions = data;
+    } catch (e) {
+        preview.innerHTML = '<div style="color:#e53e3e;text-align:center;padding:40px;">解析失败: ' + e.message + '</div>';
+    }
+}
+
+async function importPaste() {
+    const content = document.getElementById('paste-content').value.trim();
+    if (!content) { alert('请先粘贴试题内容'); return; }
+    const sourceSet = document.getElementById('paste-source-set').value.trim();
+
+    if (!confirm('确认导入解析到的试题？')) return;
+
+    // Use the existing TXT import by creating a Blob
+    const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+    const file = new File([blob], 'paste_import.txt', {type: 'text/plain'});
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('source_set', sourceSet);
+
+    try {
+        const resp = await fetch('/api/admin/import/txt', {
+            method: 'POST',
+            
+            body: formData
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert('导入成功！共导入 ' + data.imported + ' 道试题（共用题干/案例分析按组计）。' + (data.message ? '\n' + data.message : '') +
+                (data.errors && data.errors.length > 0 ? '\n错误: ' + data.errors.join(', ') : ''));
+            document.getElementById('paste-content').value = '';
+            document.getElementById('paste-preview').innerHTML = '<div style="color:#38a169;text-align:center;padding:40px;"><i class="fas fa-check-circle fa-3x"></i><p class="mt-2">导入完成</p></div>';
+        } else {
+            alert('导入失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        alert('导入失败: ' + e.message);
+    }
+}
+
+// ============================================================
+// Blog Management
+// ============================================================
+let blogCurrentPage = 1;
+
+async function loadBlogPosts(page = 1) {
+    blogCurrentPage = page;
+    const category = document.getElementById('blog-filter-category').value;
+    const published = document.getElementById('blog-filter-published').value;
+    let url = '/api/blog/posts?page=' + page + '&size=10';
+    if (category) url += '&category=' + encodeURIComponent(category);
+    if (published !== '') url += '&published=' + published;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const list = document.getElementById('blog-posts-list');
+        
+        if (data.posts.length === 0) {
+            list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-blog text-4xl mb-3"></i><p>暂无文章</p></div>';
+            document.getElementById('blog-pagination').innerHTML = '';
+            return;
+        }
+
+        list.innerHTML = data.posts.map(post => {
+            const tags = post.tags ? post.tags.split(',').map(t => '<span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded mr-1">' + t.trim() + '</span>').join('') : '';
+            const statusBadge = post.is_published 
+                ? '<span class="badge" style="background:#c6f6d5;color:#22543d;">已发布</span>'
+                : '<span class="badge" style="background:#fef3c7;color:#92400e;">草稿</span>';
+            const pinnedBadge = post.is_pinned 
+                ? '<span class="badge" style="background:#e9d8fd;color:#553c9a;margin-left:4px;">置顶</span>'
+                : '';
+            const summary = post.summary || (post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...' : '');
+            
+            return `<div class="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="text-lg font-bold text-gray-800">${post.title}</h4>
+                            ${statusBadge}${pinnedBadge}
+                        </div>
+                        <div class="text-xs text-gray-400 mb-2">
+                            <span><i class="fas fa-user mr-1"></i>${post.author || '张老师'}</span>
+                            <span class="mx-2">|</span>
+                            <span><i class="fas fa-folder mr-1"></i>${post.category}</span>
+                            <span class="mx-2">|</span>
+                            <span><i class="fas fa-eye mr-1"></i>${post.view_count || 0}</span>
+                            <span class="mx-2">|</span>
+                            <span><i class="fas fa-clock mr-1"></i>${new Date(post.created_at).toLocaleString('zh-CN')}</span>
+                        </div>
+                        ${tags ? '<div class="mb-2">' + tags + '</div>' : ''}
+                        <p class="text-sm text-gray-500">${summary}</p>
+                    </div>
+                    <div class="flex gap-1 ml-4">
+                        <button type="button" class="btn btn-outline" style="padding:4px 8px;font-size:12px;" onclick="previewBlogPost(${post.id})"><i class="fas fa-eye"></i></button>
+                        <button type="button" class="btn btn-outline" style="padding:4px 8px;font-size:12px;" onclick="editBlogPost(${post.id})"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deleteBlogPost(${post.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Pagination
+        const totalPages = Math.ceil(data.total / data.size);
+        let pagHtml = '';
+        if (totalPages > 1) {
+            for (let i = 1; i <= totalPages; i++) {
+                pagHtml += `<button onclick="loadBlogPosts(${i})" class="mx-1 px-3 py-1 rounded text-sm ${i === data.page ? 'bg-blue-600 text-white' : 'bg-white border text-gray-600 hover:bg-gray-50'}">${i}</button>`;
+            }
+        }
+        document.getElementById('blog-pagination').innerHTML = pagHtml;
+    } catch (e) {
+        console.error('Load blog posts error:', e);
+    }
+}
+
+function showAddPost() {
+    document.getElementById('blog-modal-title').textContent = '新建文章';
+    document.getElementById('blog-post-id').value = '';
+    document.getElementById('blog-title').value = '';
+    document.getElementById('blog-author').value = '张老师';
+    document.getElementById('blog-category').value = '学习笔记';
+    document.getElementById('blog-tags').value = '';
+    document.getElementById('blog-cover').value = '';
+    document.getElementById('blog-summary').value = '';
+    document.getElementById('blog-content').value = '';
+    document.getElementById('blog-published').checked = true;
+    document.getElementById('blog-pinned').checked = false;
+    document.getElementById('blog-modal').style.display = 'flex';
+}
+
+async function editBlogPost(id) {
+    try {
+        const res = await fetch('/api/blog/posts/' + id);
+        const post = await res.json();
+        if (post.error) { alert(post.error); return; }
+        
+        document.getElementById('blog-modal-title').textContent = '编辑文章';
+        document.getElementById('blog-post-id').value = post.id;
+        document.getElementById('blog-title').value = post.title;
+        document.getElementById('blog-author').value = post.author || '张老师';
+        document.getElementById('blog-category').value = post.category;
+        document.getElementById('blog-tags').value = post.tags || '';
+        document.getElementById('blog-cover').value = post.cover_image || '';
+        document.getElementById('blog-summary').value = post.summary || '';
+        document.getElementById('blog-content').value = post.content || '';
+        document.getElementById('blog-published').checked = !!post.is_published;
+        document.getElementById('blog-pinned').checked = !!post.is_pinned;
+        document.getElementById('blog-modal').style.display = 'flex';
+    } catch (e) {
+        console.error('Edit blog post error:', e);
+    }
+}
+
+async function saveBlogPost(e) {
+    e.preventDefault();
+    const id = document.getElementById('blog-post-id').value;
+    const payload = {
+        title: document.getElementById('blog-title').value,
+        author: document.getElementById('blog-author').value,
+        category: document.getElementById('blog-category').value,
+        tags: document.getElementById('blog-tags').value,
+        cover_image: document.getElementById('blog-cover').value,
+        summary: document.getElementById('blog-summary').value,
+        content: document.getElementById('blog-content').value,
+        is_published: document.getElementById('blog-published').checked,
+        is_pinned: document.getElementById('blog-pinned').checked
+    };
+
+    try {
+        const url = id ? '/api/blog/posts/' + id : '/api/blog/posts';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        closeBlogModal();
+        loadBlogPosts(blogCurrentPage);
+    } catch (e) {
+        console.error('Save blog post error:', e);
+        alert('保存失败');
+    }
+}
+
+async function deleteBlogPost(id) {
+    if (!confirm('确定删除这篇文章吗？')) return;
+    try {
+        const res = await fetch('/api/blog/posts/' + id, {method: 'DELETE'});
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        loadBlogPosts(blogCurrentPage);
+    } catch (e) {
+        console.error('Delete blog post error:', e);
+    }
+}
+
+async function previewBlogPost(id) {
+    try {
+        const res = await fetch('/api/blog/posts/' + id);
+        const post = await res.json();
+        if (post.error) { alert(post.error); return; }
+        
+        const tags = post.tags ? post.tags.split(',').map(t => '<span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded mr-1">' + t.trim() + '</span>').join('') : '';
+        const html = `
+            <div class="mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">${post.title}</h2>
+                <div class="text-sm text-gray-400 mb-3">
+                    <span><i class="fas fa-user mr-1"></i>${post.author || '张老师'}</span>
+                    <span class="mx-2">|</span>
+                    <span><i class="fas fa-folder mr-1"></i>${post.category}</span>
+                    <span class="mx-2">|</span>
+                    <span><i class="fas fa-clock mr-1"></i>${new Date(post.created_at).toLocaleString('zh-CN')}</span>
+                    <span class="mx-2">|</span>
+                    <span><i class="fas fa-eye mr-1"></i>${post.view_count || 0} 次阅读</span>
+                </div>
+                ${tags ? '<div class="mb-4">' + tags + '</div>' : ''}
+            </div>
+            <div class="prose max-w-none text-gray-700 leading-relaxed" style="line-height:1.8;">
+                ${post.content || '<p class="text-gray-400">暂无内容</p>'}
+            </div>
+        `;
+        document.getElementById('blog-preview-content').innerHTML = html;
+        document.getElementById('blog-preview-modal').style.display = 'flex';
+    } catch (e) {
+        console.error('Preview blog post error:', e);
+    }
+}
+
+function closeBlogModal() {
+    document.getElementById('blog-modal').style.display = 'none';
+}
+
+// ============================================================
+// AI Question Generation
+// ============================================================
+let aiGeneratedQuestions = [];
+let aiGeneratedType = '';
+let aiGeneratedCategory = '';
+
+async function loadAISettings() {
+    // Just check if API key is configured
+    try {
+        const res = await fetch('/api/admin/ai/settings');
+        const data = await res.json();
+        if (!data.api_key && !data.api_key_masked) {
+            document.getElementById('ai-status').innerHTML = '<span style="color:#e53e3e;"><i class="fas fa-exclamation-triangle mr-1"></i>未配置API Key，请先去AI设置配置</span>';
+        } else {
+            document.getElementById('ai-status').innerHTML = '<span style="color:#38a169;"><i class="fas fa-check-circle mr-1"></i>已配置: ' + (data.provider || 'deepseek') + ' / ' + (data.model || '') + '</span>';
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function loadAISettingsForm() {
+    try {
+        const res = await fetch('/api/admin/ai/settings');
+        const data = await res.json();
+        document.getElementById('ai-provider').value = data.provider || 'deepseek';
+        document.getElementById('ai-api-key').value = '';
+        var savedModel = data.model || '';
+        document.getElementById('ai-model-current').textContent = savedModel;
+        var modelSel = document.getElementById('ai-model-select');
+        var modelInput = document.getElementById('ai-model');
+        var matched = false;
+        for (var i = 0; i < modelSel.options.length; i++) {
+            if (modelSel.options[i].value === savedModel) {
+                modelSel.value = savedModel;
+                modelInput.style.display = 'none';
+                matched = true;
+                break;
+            }
+        }
+        if (!matched && savedModel) {
+            modelSel.value = 'custom';
+            modelInput.style.display = 'block';
+            modelInput.value = savedModel;
+        }
+        document.getElementById('ai-base-url').value = data.base_url || '';
+        if (data.api_key_masked) {
+            document.getElementById('ai-key-hint').textContent = '当前: ' + data.api_key_masked + ' (留空保持不变)';
+        }
+        onProviderChange();
+    } catch(e) { console.error(e); }
+}
+
+function onProviderChange() {
+    const provider = document.getElementById('ai-provider').value;
+    const baseUrlInput = document.getElementById('ai-base-url');
+    if (provider === 'deepseek') {
+        if (!baseUrlInput.value) baseUrlInput.value = 'https://api.deepseek.com';
+    } else if (provider === 'siliconflow') {
+        if (!baseUrlInput.value) baseUrlInput.value = 'https://api.siliconflow.cn/v1';
+    }
+}
+
+function onModelSelect() {
+    const sel = document.getElementById('ai-model-select');
+    const customInput = document.getElementById('ai-model');
+    if (sel.value === 'custom') {
+        customInput.style.display = 'block';
+        customInput.focus();
+    } else {
+        customInput.style.display = 'none';
+        customInput.value = sel.value;
+    }
+}
+
+async function saveAISettings() {
+    const provider = document.getElementById('ai-provider').value;
+    const apiKey = document.getElementById('ai-api-key').value;
+    const modelSel = document.getElementById('ai-model-select').value;
+    const model = modelSel === 'custom' ? document.getElementById('ai-model').value : modelSel;
+    const baseUrl = document.getElementById('ai-base-url').value;
+    const msgEl = document.getElementById('ai-settings-msg');
+
+    try {
+        const res = await fetch('/api/admin/ai/settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({provider, api_key: apiKey, model, base_url: baseUrl})
+        });
+        const data = await res.json();
+        if (data.success) {
+            msgEl.innerHTML = '<span style="color:#38a169;"><i class="fas fa-check mr-1"></i>保存成功</span>';
+        } else {
+            msgEl.innerHTML = '<span style="color:#e53e3e;">' + (data.error || '保存失败') + '</span>';
+        }
+    } catch(e) {
+        msgEl.innerHTML = '<span style="color:#e53e3e;">保存失败: ' + e.message + '</span>';
+    }
+}
+
+    function toggleTypeCount(cb) {
+        var countInput = document.getElementById('ai-q-count-' + cb.value);
+        if (countInput) { countInput.disabled = !cb.checked; }
+    }
+
+    // Textbook tag management
+    var selectedTextbooks = {};
+
+    async function generateAIQuestions() {
+    // Collect checked types
+    var typeCbs = document.querySelectorAll('.ai-q-type-cb:checked');
+    var types = Array.from(typeCbs).map(cb => cb.value);
+    if (types.length === 0) { alert('请至少选择一种题型'); return; }
+
+    var category = document.getElementById('ai-q-category').value;
+    var topic = document.getElementById('ai-q-topic').value;
+    var difficulty = document.getElementById('ai-q-difficulty').value;
+
+    // Per-type counts
+    var body = {
+        type: types.join(','),
+        category: category,
+        topic: topic,
+        difficulty: difficulty,
+        level: document.getElementById('ai-q-level').value,
+        count_single: parseInt(document.getElementById('ai-q-count-single').value) || 5,
+        count_multiple: parseInt(document.getElementById('ai-q-count-multiple').value) || 3,
+        count_shared: parseInt(document.getElementById('ai-q-count-shared').value) || 2,
+        count_case: parseInt(document.getElementById('ai-q-count-case').value) || 1,
+        textbook_ids: Object.keys(selectedTextbooks).map(function(id) { return parseInt(id); })
+    };
+
+    // Show streaming area
+    var streamArea = document.getElementById('ai-stream-area');
+    var streamBox = document.getElementById('ai-stream-box');
+    var streamStatus = document.getElementById('ai-stream-status');
+    var streamSpinner = document.getElementById('ai-stream-spinner');
+    streamArea.style.display = 'block';
+    streamArea.scrollIntoView({behavior: 'smooth', block: 'center'});
+    streamBox.textContent = '';
+    streamStatus.textContent = 'AI 正在生成题目...';
+    streamStatus.style.color = '#2563eb';
+    streamSpinner.style.display = 'inline-block';
+    document.getElementById('ai-result-area').style.display = 'none';
+    document.getElementById('ai-loading').style.display = 'none';
+    document.getElementById('ai-generate-btn').disabled = true;
+
+    try {
+        const res = await fetch('/api/admin/ai/generate-stream', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+
+        // Check for non-streaming error responses (e.g. 403, 401)
+        if (!res.ok) {
+            var errData = {};
+            try { errData = await res.json(); } catch(e) {}
+            streamSpinner.style.display = 'none';
+            streamStatus.textContent = '请求失败';
+            streamStatus.style.color = '#dc2626';
+            streamBox.textContent = '[错误] ' + (errData.error || ('HTTP ' + res.status));
+            document.getElementById('ai-generate-btn').disabled = false;
+            return;
+        }
+
+        // Check content type - if not SSE, it might be a JSON error
+        var ct = res.headers.get('content-type') || '';
+        if (ct.indexOf('text/event-stream') === -1 && ct.indexOf('application/json') !== -1) {
+            var errData2 = await res.json();
+            streamSpinner.style.display = 'none';
+            streamStatus.textContent = '请求失败';
+            streamStatus.style.color = '#dc2626';
+            streamBox.textContent = '[错误] ' + (errData2.error || '未知错误');
+            document.getElementById('ai-generate-btn').disabled = false;
+            return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        var buffer = '';
+        var fullText = '';
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, {stream: true});
+            var lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (!line.startsWith('data: ')) continue;
+                var payload = line.substring(6);
+                try {
+                    var evt = JSON.parse(payload);
+                    if (evt.type === 'chunk') {
+                        fullText += evt.content;
+                        streamBox.textContent = fullText;
+                        streamBox.scrollTop = streamBox.scrollHeight;
+                    } else if (evt.type === 'done') {
+                        streamSpinner.style.display = 'none';
+                        streamStatus.textContent = '生成完成！共 ' + evt.questions.length + ' 道题目';
+                        streamStatus.style.color = '#16a34a';
+                        document.getElementById('ai-generate-btn').disabled = false;
+
+                        aiGeneratedQuestions = evt.questions;
+                        aiGeneratedType = evt.type_name;
+                        aiGeneratedCategory = category;
+                        aiGeneratedDifficulty = difficulty;
+                        aiGeneratedLevel = document.getElementById('ai-q-level').value;
+                        renderAIQuestions(evt.questions, evt.type_name);
+                        document.getElementById('ai-result-area').style.display = 'block';
+                        // Show exam import button for 套卷
+                        document.getElementById('ai-exam-btn').style.display = (category === '套卷') ? 'inline-flex' : 'none';
+                    } else if (evt.type === 'error') {
+                        streamSpinner.style.display = 'none';
+                        streamStatus.textContent = '生成失败';
+                        streamStatus.style.color = '#dc2626';
+                        streamBox.textContent += '\n\n[错误] ' + evt.error;
+                        document.getElementById('ai-generate-btn').disabled = false;
+                    }
+                } catch(e) { /* skip malformed lines */ }
+            }
+        }
+    } catch(e) {
+        streamSpinner.style.display = 'none';
+        streamStatus.textContent = '请求异常';
+        streamStatus.style.color = '#dc2626';
+        streamBox.textContent = '[异常] ' + e.message + '\n\n' + (e.stack || '');
+
+        document.getElementById('ai-generate-btn').disabled = false;
+    }
+}
+
+function renderAIQuestions(questions, type) {
+    const list = document.getElementById('ai-questions-list');
+    if (type === 'shared' || type === 'case') {
+        list.innerHTML = questions.map((q, i) => {
+            const subs = (q.sub_questions || []).map((sq, j) => {
+                const opts = Object.entries(sq.options || {}).map(([k,v]) => `<span class="inline-block bg-gray-50 px-2 py-0.5 rounded mr-2 text-xs"><b>${k}.</b> ${v}</span>`).join('');
+                return `<div class="ml-4 mt-2 p-2 bg-gray-50 rounded">
+                    <p class="text-sm font-medium text-gray-700">(${j+1}) ${sq.question}</p>
+                    <div class="mt-1 flex flex-wrap">${opts}</div>
+                    <p class="text-xs text-green-600 mt-1"><b>答案:</b> ${sq.answer || ''} | <b>解析:</b> ${sq.explanation || ''}</p>
+                </div>`;
+            }).join('');
+            return `<div class="bg-white rounded-xl border p-5">
+                <div class="flex items-start gap-2 mb-2">
+                    <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold">第${i+1}组</span>
+                    <p class="text-sm text-gray-800 font-medium">${q.stem || ''}</p>
+                </div>
+                ${subs}
+            </div>`;
+        }).join('');
+    } else {
+        list.innerHTML = questions.map((q, i) => {
+            const opts = Object.entries(q.options || {}).map(([k,v]) => `<span class="inline-block bg-gray-50 px-2 py-0.5 rounded mr-2 text-xs"><b>${k}.</b> ${v}</span>`).join('');
+            const kp = q.knowledge_point ? `<span class="inline-block bg-yellow-50 text-yellow-700 text-xs px-2 py-0.5 rounded ml-2">${q.knowledge_point}</span>` : '';
+            return `<div class="bg-white rounded-xl border p-5">
+                <div class="flex items-start gap-2 mb-2">
+                    <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold">第${i+1}题</span>
+                    <p class="text-sm text-gray-800 flex-1">${q.question}</p>
+                </div>
+                <div class="flex flex-wrap mb-2 ml-8">${opts}</div>
+                <div class="ml-8 text-xs">
+                    <span class="text-green-600"><b>答案:</b> ${q.answer || ''}</span>
+                    <span class="text-gray-500 ml-3"><b>解析:</b> ${q.explanation || ''}</span>
+                    ${kp}
+                </div>
+            </div>`;
+        }).join('');
+    }
+}
+
+async function importAIQuestions() {
+    if (!aiGeneratedQuestions.length) return;
+    if (!confirm('确定将这 ' + aiGeneratedQuestions.length + ' 道题导入题库吗？')) return;
+
+    try {
+        const res = await fetch('/api/admin/ai/import', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                questions: aiGeneratedQuestions,
+                type: aiGeneratedType,
+                category: aiGeneratedCategory
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('导入成功！共导入 ' + data.imported + ' 道题。' + (data.errors && data.errors.length ? '\n错误: ' + data.errors.join(', ') : ''));
+            document.getElementById('ai-result-area').style.display = 'none';
+            aiGeneratedQuestions = [];
+        } else {
+            alert('导入失败: ' + (data.error || '未知错误'));
+        }
+    } catch(e) {
+        alert('导入失败: ' + e.message);
+    }
+}
+
+// ============================================================
+// Textbook Management
+// ============================================================
+async function loadTextbooks() {
+    try {
+        const res = await fetch('/api/admin/ai/textbooks');
+        const data = await res.json();
+        const list = document.getElementById('textbook-list');
+        window._allTextbooks = {};
+
+        if (!data.textbooks || data.textbooks.length === 0) {
+            list.innerHTML = '<div class="text-center text-gray-400 py-6"><i class="fas fa-book-open text-3xl mb-2"></i><p>暂无教材，请上传 PDF/Word/TXT 文件</p></div>';
+            renderSelectedTextbooks();
+            return;
+        }
+
+        data.textbooks.forEach(function(tb) { window._allTextbooks[tb.id] = tb; });
+
+        list.innerHTML = data.textbooks.map(tb => {
+            const sizeKB = (tb.file_size / 1024).toFixed(1);
+            const icon = tb.file_name.endsWith('.pdf') ? 'fa-file-pdf text-red-500' :
+                         (tb.file_name.endsWith('.docx') || tb.file_name.endsWith('.doc')) ? 'fa-file-word text-blue-500' : 'fa-file-alt text-gray-500';
+            const charCount = tb.char_count || 0;
+            const isSelected = selectedTextbooks[tb.id] ? 'border-left:3px solid #4f46e5;' : '';
+            return `<div class="flex items-center justify-between rounded-lg px-4 py-3" style="background:#f9fafb;cursor:pointer;${isSelected}" ondblclick="selectTextbook(${tb.id})">
+                <div class="flex items-center gap-3" style="pointer-events:none;">
+                    <i class="fas ${icon} text-xl"></i>
+                    <div>
+                        <div class="font-medium text-gray-800 text-sm">${tb.file_name}</div>
+                        <div class="text-xs text-gray-400">${sizeKB} KB · ${charCount.toLocaleString()} 字</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline" style="padding:4px 8px;font-size:12px;color:#e53e3e;" onclick="event.stopPropagation();deleteTextbook(${tb.id})"><i class="fas fa-trash"></i></button>
+            </div>`;
+        }).join('');
+
+        renderSelectedTextbooks();
+    } catch (e) {
+        console.error('Load textbooks error:', e);
+    }
+}
+
+function selectTextbook(id) {
+    if (selectedTextbooks[id]) return;
+    var tb = window._allTextbooks[id];
+    if (!tb) return;
+    selectedTextbooks[id] = tb.file_name + ' (' + (tb.char_count||0).toLocaleString() + '字)';
+    loadTextbooks();
+}
+
+function renderSelectedTextbooks() {
+    var container = document.getElementById('textbook-selected');
+    var ids = Object.keys(selectedTextbooks);
+    if (ids.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-300 py-6 text-sm">双击左侧教材添加</div>';
+        return;
+    }
+    container.innerHTML = ids.map(function(id) {
+        return '<div class="flex items-center justify-between bg-indigo-50 rounded-lg px-3 py-2">' +
+            '<span class="text-sm text-indigo-800"><i class="fas fa-book mr-1" style="font-size:12px;"></i>' + selectedTextbooks[id] + '</span>' +
+            '<button type="button" onclick="removeTextbook(\'' + id + '\')" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:16px;padding:0 4px;line-height:1;" title="取消">&times;</button></div>';
+    }).join('');
+}
+
+function removeTextbook(id) {
+    delete selectedTextbooks[id];
+    loadTextbooks();
+}
+
+async function uploadTextbooks(input) {
+    const files = Array.from(input.files);
+    if (files.length === 0) return;
+
+    const maxSize = 20 * 1024 * 1024;
+    for (const f of files) {
+        if (f.size > maxSize) {
+            alert(f.name + ' 超过 20MB，已跳过');
+            continue;
+        }
+    }
+
+    document.getElementById('textbook-upload-progress').style.display = 'block';
+    let successCount = 0;
+    let totalChars = 0;
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > maxSize) continue;
+        document.getElementById('upload-status').textContent = '正在上传 (' + (i+1) + '/' + files.length + '): ' + file.name;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/admin/ai/textbook/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.error) {
+                alert(file.name + ' 上传失败: ' + data.error);
+            } else {
+                successCount++;
+                totalChars += (data.char_count || 0);
+            }
+        } catch (e) {
+            alert(file.name + ' 上传出错: ' + e.message);
+        }
+    }
+
+    document.getElementById('upload-status').textContent = '完成！成功上传 ' + successCount + ' 个文件，共提取 ' + totalChars.toLocaleString() + ' 字';
+    document.getElementById('textbook-upload-progress').style.display = 'none';
+    input.value = '';
+    loadTextbooks();
+}
+
+async function deleteTextbook(id) {
+    if (!confirm('确定删除这本教材吗？')) return;
+    try {
+        const res = await fetch('/api/admin/ai/textbooks/' + id, {method: 'DELETE'});
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        loadTextbooks();
+    } catch (e) {
+        console.error('Delete textbook error:', e);
+    }
+}
+
+    function toggleSidebar() {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.getElementById('sidebar-overlay').classList.toggle('open');
+    }
+    // Close sidebar when clicking a link on mobile
+    document.querySelectorAll('.sidebar a').forEach(a => {
+        a.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('open');
+                document.getElementById('sidebar-overlay').classList.remove('open');
+            }
+        });
+    });
+    
+
+        var aiGeneratedDifficulty = '';
+        var aiGeneratedLevel = '';
+
+        async function importAsExam() {
+            if (!aiGeneratedQuestions || !aiGeneratedQuestions.length) return;
+            var title = prompt('请输入试卷名称：', aiGeneratedDifficulty + '职称模拟试卷');
+            if (!title) return;
+            try {
+                var resp = await fetch('/api/admin/ai/import-as-exam', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        questions: aiGeneratedQuestions,
+                        type: aiGeneratedType,
+                        category: aiGeneratedCategory,
+                        title: title,
+                        difficulty: aiGeneratedDifficulty,
+                        level: aiGeneratedLevel
+                    })
+                });
+                var data = await resp.json();
+                if (data.success) {
+                    alert('试卷创建成功！\n试卷名称：' + data.exam_title + '\n题目数量：' + data.question_count + ' 题\n状态：草稿（可在考试管理中发布）');
+                    document.getElementById('ai-result-area').style.display = 'none';
+                    document.getElementById('ai-stream-area').style.display = 'none';
+                    aiGeneratedQuestions = [];
+                } else {
+                    alert('创建失败: ' + (data.error || '未知错误'));
+                }
+            } catch(e) {
+                alert('请求失败: ' + e.message);
+            }
+        }
+
+        // ============================================================
+        // Site Settings
+        // ============================================================
+        async function loadSiteSettings() {
+            try {
+                const resp = await fetch('/api/admin/site/settings');
+                const data = await resp.json();
+                document.getElementById('ss-student-id-login').checked = !!data.allow_student_id_login;
+                document.getElementById('ss-account-login').checked = !!data.allow_account_login;
+                document.getElementById('ss-allow-register').checked = !!data.allow_register;
+            } catch(e) {
+                console.error('Load site settings error:', e);
+            }
+        }
+
+        async function saveSiteSettings() {
+            var body = {
+                allow_student_id_login: document.getElementById('ss-student-id-login').checked,
+                allow_account_login: document.getElementById('ss-account-login').checked,
+                allow_register: document.getElementById('ss-allow-register').checked
+            };
+            if (!body.allow_student_id_login && !body.allow_account_login) {
+                alert('至少需要开启一种登录方式，否则所有学生将无法登录！');
+                return;
+            }
+            try {
+                const resp = await fetch('/api/admin/site/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    document.getElementById('site-settings-msg').textContent = '保存成功！';
+                    document.getElementById('site-settings-msg').style.color = '#16a34a';
+                    setTimeout(function() { document.getElementById('site-settings-msg').textContent = ''; }, 3000);
+                } else {
+                    alert('保存失败');
+                }
+            } catch(e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+
+    
+        function exportExam(examId, mode) {
+            window.open('/api/admin/exams/' + examId + '/export?mode=' + mode, '_blank');
+        }
+
+
+        // ============================================================
+        // Ads Management
+        // ============================================================
+        async function loadAds() {
+            try {
+                const resp = await fetch('/api/admin/ads');
+                const ads = await resp.json();
+                renderAdsList(ads);
+            } catch(e) {
+                console.error('Load ads error:', e);
+                document.getElementById('ads-list').innerHTML = '<p class="text-red-400 text-center py-8">加载失败</p>';
+            }
+        }
+
+        function renderAdsList(ads) {
+            var container = document.getElementById('ads-list');
+            if (!ads.length) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8">暂无广告，点击上方按钮添加</p>';
+                return;
+            }
+            var html = '';
+            ads.forEach(function(ad) {
+                var statusBadge = ad.is_active
+                    ? '<span class="inline-block px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">已启用</span>'
+                    : '<span class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">已停用</span>';
+                html += '<div class="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50" data-id="' + ad.id + '">'
+                    + '<div class="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">'
+                    + '<img src="' + ad.image_url + '" alt="' + (ad.title || '') + '" class="w-full h-full object-cover">'
+                    + '</div>'
+                    + '<div class="flex-1 min-w-0">'
+                    + '<div class="font-medium text-gray-800 truncate">' + (ad.title || '未命名') + '</div>'
+                    + '<div class="text-xs text-gray-400 mt-1">排序: ' + ad.sort_order + ' · ' + statusBadge + '</div>'
+                    + (ad.link_url ? '<div class="text-xs text-blue-500 truncate mt-1">' + ad.link_url + '</div>' : '')
+                    + '</div>'
+                    + '<div class="flex items-center gap-2 flex-shrink-0">'
+                    + '<button class="btn btn-outline text-xs" onclick="toggleAd(' + ad.id + ',' + (ad.is_active ? 0 : 1) + ')">' + (ad.is_active ? '停用' : '启用') + '</button>'
+                    + '<button class="btn btn-outline text-xs" onclick="editAd(' + ad.id + ')"><i class="fas fa-edit"></i></button>'
+                    + '<button class="btn btn-outline text-xs text-red-500" onclick="deleteAd(' + ad.id + ')"><i class="fas fa-trash"></i></button>'
+                    + '</div>'
+                    + '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function showAddAd() {
+            var modal = document.createElement('div');
+            modal.id = 'ad-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = '<div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">'
+                + '<h3 class="text-xl font-bold text-gray-800 mb-4">添加广告</h3>'
+                + '<div class="space-y-4">'
+                + '<div><label class="block text-sm font-medium text-gray-700 mb-1">广告标题</label>'
+                + '<input type="text" id="ad-title" class="form-input w-full" placeholder="例：染封一体机"></div>'
+                + '<div><label class="block text-sm font-medium text-gray-700 mb-1">广告图片</label>'
+                + '<div class="flex items-center gap-3">'
+                + '<input type="file" id="ad-image-file" accept="image/*" class="form-input w-full text-sm">'
+                + '</div>'
+                + '<div id="ad-image-preview" class="mt-2"></div></div>'
+                + '<div><label class="block text-sm font-medium text-gray-700 mb-1">链接地址（可选）</label>'
+                + '<input type="text" id="ad-link-url" class="form-input w-full" placeholder="https://example.com"></div>'
+                + '<div><label class="block text-sm font-medium text-gray-700 mb-1">排序权重</label>'
+                + '<input type="number" id="ad-sort-order" class="form-input w-full" value="0" min="0"></div>'
+                + '<label class="flex items-center gap-2"><input type="checkbox" id="ad-is-active" checked class="w-4 h-4 text-blue-600 rounded"><span class="text-sm text-gray-700">启用</span></label>'
+                + '</div>'
+                + '<div class="flex justify-end gap-3 mt-6">'
+                + '<button class="btn btn-outline" onclick="closeAdModal()">取消</button>'
+                + '<button class="btn btn-primary" onclick="submitAd()">添加</button>'
+                + '</div>'
+                + '</div>';
+            document.body.appendChild(modal);
+            modal.addEventListener('click', function(e) { if (e.target === modal) closeAdModal(); });
+            // Add preview handler
+            document.getElementById('ad-image-file').addEventListener('change', function(e) {
+                var file = e.target.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(ev) {
+                        document.getElementById('ad-image-preview').innerHTML = '<img src="' + ev.target.result + '" class="w-32 h-32 object-cover rounded-lg">';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function closeAdModal() {
+            var modal = document.getElementById('ad-modal');
+            if (modal) modal.remove();
+        }
+
+        async function submitAd() {
+            var title = document.getElementById('ad-title').value.trim();
+            var fileInput = document.getElementById('ad-image-file');
+            var linkUrl = document.getElementById('ad-link-url').value.trim();
+            var sortOrder = parseInt(document.getElementById('ad-sort-order').value) || 0;
+            var isActive = document.getElementById('ad-is-active').checked ? 1 : 0;
+
+            if (!fileInput.files.length) {
+                alert('请选择广告图片');
+                return;
+            }
+
+            // Upload image first
+            var formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            try {
+                var uploadResp = await fetch('/api/admin/ads/upload', { method: 'POST', body: formData });
+                var uploadData = await uploadResp.json();
+                if (!uploadData.success) {
+                    alert('图片上传失败: ' + (uploadData.error || '未知错误'));
+                    return;
+                }
+
+                // Create ad record
+                var resp = await fetch('/api/admin/ads', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        title: title,
+                        image_url: uploadData.url,
+                        link_url: linkUrl,
+                        is_active: isActive,
+                        sort_order: sortOrder
+                    })
+                });
+                var data = await resp.json();
+                if (data.id) {
+                    closeAdModal();
+                    loadAds();
+                } else {
+                    alert('添加失败: ' + (data.error || '未知错误'));
+                }
+            } catch(e) {
+                alert('操作失败: ' + e.message);
+            }
+        }
+
+        async function toggleAd(adId, newStatus) {
+            try {
+                var resp = await fetch('/api/admin/ads/' + adId, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ is_active: newStatus })
+                });
+                if (resp.ok) { loadAds(); }
+                else { alert('操作失败'); }
+            } catch(e) { alert('操作失败: ' + e.message); }
+        }
+
+        async function editAd(adId) {
+            try {
+                var resp = await fetch('/api/admin/ads');
+                var ads = await resp.json();
+                var ad = ads.find(function(a) { return a.id === adId; });
+                if (!ad) return;
+
+                var modal = document.createElement('div');
+                modal.id = 'ad-modal';
+                modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+                modal.innerHTML = '<div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">'
+                    + '<h3 class="text-xl font-bold text-gray-800 mb-4">编辑广告</h3>'
+                    + '<div class="space-y-4">'
+                    + '<div><label class="block text-sm font-medium text-gray-700 mb-1">广告标题</label>'
+                    + '<input type="text" id="ad-title" class="form-input w-full" value="' + (ad.title || '') + '"></div>'
+                    + '<div><label class="block text-sm font-medium text-gray-700 mb-1">当前图片</label>'
+                    + '<img src="' + ad.image_url + '" class="w-32 h-32 object-cover rounded-lg">'
+                    + '<div class="mt-2"><input type="file" id="ad-image-file" accept="image/*" class="form-input w-full text-sm">'
+                    + '<div id="ad-image-preview" class="mt-2"></div></div></div>'
+                    + '<div><label class="block text-sm font-medium text-gray-700 mb-1">链接地址</label>'
+                    + '<input type="text" id="ad-link-url" class="form-input w-full" value="' + (ad.link_url || '') + '"></div>'
+                    + '<div><label class="block text-sm font-medium text-gray-700 mb-1">排序权重</label>'
+                    + '<input type="number" id="ad-sort-order" class="form-input w-full" value="' + ad.sort_order + '" min="0"></div>'
+                    + '<label class="flex items-center gap-2"><input type="checkbox" id="ad-is-active" ' + (ad.is_active ? 'checked' : '') + ' class="w-4 h-4 text-blue-600 rounded"><span class="text-sm text-gray-700">启用</span></label>'
+                    + '</div>'
+                    + '<div class="flex justify-end gap-3 mt-6">'
+                    + '<button class="btn btn-outline" onclick="closeAdModal()">取消</button>'
+                    + '<button class="btn btn-primary" onclick="updateAd(' + adId + ')">保存</button>'
+                    + '</div>'
+                    + '</div>';
+                document.body.appendChild(modal);
+                modal.addEventListener('click', function(e) { if (e.target === modal) closeAdModal(); });
+                document.getElementById('ad-image-file').addEventListener('change', function(e) {
+                    var file = e.target.files[0];
+                    if (file) {
+                        var reader = new FileReader();
+                        reader.onload = function(ev) {
+                            document.getElementById('ad-image-preview').innerHTML = '<img src="' + ev.target.result + '" class="w-32 h-32 object-cover rounded-lg">';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            } catch(e) { alert('加载失败: ' + e.message); }
+        }
+
+        async function updateAd(adId) {
+            var title = document.getElementById('ad-title').value.trim();
+            var fileInput = document.getElementById('ad-image-file');
+            var linkUrl = document.getElementById('ad-link-url').value.trim();
+            var sortOrder = parseInt(document.getElementById('ad-sort-order').value) || 0;
+            var isActive = document.getElementById('ad-is-active').checked ? 1 : 0;
+
+            var body = { title: title, link_url: linkUrl, is_active: isActive, sort_order: sortOrder };
+
+            // If new image selected, upload first
+            if (fileInput.files.length) {
+                var formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                try {
+                    var uploadResp = await fetch('/api/admin/ads/upload', { method: 'POST', body: formData });
+                    var uploadData = await uploadResp.json();
+                    if (uploadData.success) {
+                        body.image_url = uploadData.url;
+                    }
+                } catch(e) { alert('图片上传失败: ' + e.message); return; }
+            }
+
+            try {
+                var resp = await fetch('/api/admin/ads/' + adId, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) { closeAdModal(); loadAds(); }
+                else { alert('保存失败'); }
+            } catch(e) { alert('保存失败: ' + e.message); }
+        }
+
+        async function deleteAd(adId) {
+            if (!confirm('确定删除此广告？')) return;
+            try {
+                var resp = await fetch('/api/admin/ads/' + adId, { method: 'DELETE' });
+                if (resp.ok) { loadAds(); }
+                else { alert('删除失败'); }
+            } catch(e) { alert('删除失败: ' + e.message); }
+        }
+
+    </script>
+</body>
+</html>
