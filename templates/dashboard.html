@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考生中心 - 张老师病理学职称考试模拟系统</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        .exam-card { transition: all 0.3s ease; }
+        .exam-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .badge-practice { background: #10b981; }
+        .badge-exam { background: #3b82f6; }
+        .status-passed { color: #10b981; }
+        .status-failed { color: #ef4444; }
+        .status-progress { color: #f59e0b; }
+        .col-panel { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; }
+        .col-panel:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .blog-card { background: #fafbfc; border-radius: 10px; border: 1px solid #edf2f7; padding: 16px; transition: all 0.2s; cursor: pointer; }
+        .blog-card:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-color: #cbd5e0; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+    
+        @media (max-width: 900px) {
+            .two-col { grid-template-columns: 1fr !important; }
+            .welcome-banner { padding: 16px !important; }
+            .welcome-banner h2 { font-size: 1.2rem !important; }
+            .nav-links { gap: 8px !important; }
+            .nav-links a { font-size: 12px !important; padding: 4px 8px !important; }
+        }
+        @media (max-width: 480px) {
+            .nav-links { flex-wrap: wrap; justify-content: center; }
+            .blog-card { padding: 10px !important; }
+            .exam-card { padding: 12px !important; }
+        }
+    
+    
+
+
+    
+    @media (max-width:768px) {
+    .exam-instructions h4 { font-size:14px; font-weight:700; color:#92400e; margin:0 0 8px 0; display:flex; align-items:center; gap:6px; }
+    .exam-instructions ul { margin:0; padding-left:18px; }
+    .exam-instructions li { font-size:13px; color:#78350f; line-height:1.8; }
+    .exam-instructions li::marker { color:#f59e0b; }
+    @media (max-width:768px) {
+        .exam-instructions { padding:12px 14px; }
+        .exam-instructions li { font-size:12px; line-height:1.7; }
+    }
+
+    
+    /* Back to Top */
+    .back-to-top { position:fixed; bottom:20px; right:20px; z-index:200; width:42px; height:42px; border-radius:50%; background:#3b82f6; color:white; border:none; cursor:pointer; font-size:18px; display:none; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(59,130,246,0.4); transition:opacity 0.3s, transform 0.2s; }
+    .back-to-top:hover { background:#2563eb; transform:translateY(-2px); }
+    .back-to-top.show { display:flex; }
+
+    
+    /* Mobile App Fullscreen */
+    @media (max-width: 768px) {
+        body { margin: 0 !important; padding: 0 !important; }
+        .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl { max-width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; margin: 0 !important; }
+        .welcome-banner { margin: 0 !important; border-radius: 0 !important; }
+        .col-panel { border-radius: 8px !important; }
+    }
+</style>
+</head>
+<body>
+
+    <!-- Header -->
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-blue-800 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-medical text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800">张老师病理学职称考试模拟系统</h1>
+                    <p class="text-xs text-gray-400">张老师病理学职称考试辅导平台</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="text-sm text-gray-600"><i class="fas fa-user mr-1"></i>{{ user.real_name }}</span>
+                <a href="/logout" class="text-sm text-gray-400 hover:text-red-500 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-1"></i>退出
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Welcome Banner -->
+        <div class="bg-gradient-to-r from-blue-800 to-blue-600 rounded-2xl p-6 mb-6 text-white">
+            <h2 class="text-xl font-bold mb-1">欢迎回来，{{ user.real_name }}</h2>
+            <p class="text-blue-200 text-sm">全国病理学副高级职称考试 · 人机对话 · 客观题 · 120分钟</p>
+
+
+        <!-- Android App Banner -->
+        <div style="margin-bottom:20px;background:linear-gradient(135deg,#1e88e5,#1565c0);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 2px 12px rgba(21,101,192,0.25);">
+            <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
+                <div style="width:44px;height:44px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fab fa-android" style="color:#fff;font-size:24px;"></i>
+                </div>
+                <div style="min-width:0;">
+                    <div style="color:#fff;font-weight:700;font-size:15px;">安卓 APP 上线啦</div>
+                    <div style="color:#bbdefb;font-size:12px;margin-top:2px;">下载安装后即可在手机上练习，随时随地刷题</div>
+                </div>
+            </div>
+            <a href="/static/pathologist-exam.apk" style="flex-shrink:0;background:#fff;color:#1565c0;font-weight:600;font-size:13px;padding:8px 18px;border-radius:8px;text-decoration:none;white-space:nowrap;transition:all 0.2s;">
+                <i class="fas fa-download" style="margin-right:4px;"></i>下载 APK
+            </a>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div class="two-col">
+            <!-- Left Column: Exams -->
+            <div>
+
+                <!-- Exam Instructions -->
+                <div class="exam-instructions">
+                    <h4><i class="fas fa-info-circle"></i> 考试说明</h4>
+                    <ul>
+                        <li>考试形式为<b>人机对话</b>，题型包括单选题、多选题、共用题干单选题和案例分析题</li>
+                        <li>考试时长<b>120分钟</b>，时间结束后系统自动交卷</li>
+                        <li>答题过程中可随时切换题目，已答题目会有标记</li>
+                        <li>案例分析题为<b>不定项选择</b>，少选得部分分，错选不得分</li>
+                        <li>交卷后可立即查看成绩和试题解析</li>
+                    </ul>
+                </div>
+
+                <!-- Exam Center -->
+                <div class="col-panel mb-5">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="w-8 h-8 bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center mr-2 text-sm"><i class="fas fa-clipboard-list"></i></span>
+                        考试中心
+                    </h3>
+                    {% if exams %}
+                    <div class="space-y-3">
+                        {% for exam in exams %}
+                        <div class="exam-card bg-white rounded-lg border p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <h4 class="text-base font-bold text-gray-800">{{ exam.title }}</h4>
+                                {% if exam.is_practice %}
+                                <span class="badge-practice text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">练习</span>
+                                {% else %}
+                                <span class="badge-exam text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">模拟</span>
+                                {% endif %}
+                            </div>
+                            {% if exam.description %}
+                            <p class="text-xs text-gray-500 mb-2">{{ exam.description }}</p>
+                            {% endif %}
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-3">
+                                <span><i class="fas fa-question-circle text-blue-400 mr-1"></i>{{ exam.question_count }} 题</span>
+                                <span><i class="fas fa-clock text-orange-400 mr-1"></i>{{ exam.duration }} 分钟</span>
+                                <span><i class="fas fa-star text-yellow-500 mr-1"></i>满分 {{ exam.total_score }}</span>
+                                <span><i class="fas fa-check-circle text-green-500 mr-1"></i>合格 {{ exam.pass_score }}</span>
+                            </div>
+                            <a href="/exam/{{ exam.id }}" class="block text-center py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium rounded-lg transition-colors">
+                                <i class="fas fa-play mr-1"></i>开始考试
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-inbox text-3xl mb-2"></i>
+                        <p class="text-sm">暂无可用考试</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Exam History -->
+                <div class="col-panel">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="w-8 h-8 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center mr-2 text-sm"><i class="fas fa-history"></i></span>
+                        考试记录
+                    </h3>
+                    {% if history %}
+                    <div class="space-y-2">
+                        {% for h in history %}
+                        <div class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-800 truncate">{{ h.exam_title }}</p>
+                                <p class="text-xs text-gray-400">{{ h.start_time[:16] }}</p>
+                            </div>
+                            <div class="flex items-center gap-3 ml-3 flex-shrink-0">
+                                {% if h.status == 'submitted' %}
+                                    {% if h.total_score >= h.pass_score %}
+                                    <span class="status-passed text-xs font-semibold"><i class="fas fa-check-circle mr-1"></i>通过</span>
+                                    {% else %}
+                                    <span class="status-failed text-xs font-semibold"><i class="fas fa-times-circle mr-1"></i>未通过</span>
+                                    {% endif %}
+                                    <span class="text-sm font-bold {% if h.total_score >= h.pass_score %}text-green-600{% else %}text-red-500{% endif %}">{{ h.total_score }}分</span>
+                                    <a href="/result/{{ h.id }}" class="text-xs text-blue-600 hover:text-blue-800"><i class="fas fa-eye"></i></a>
+                                {% else %}
+                                    <span class="status-progress text-xs font-semibold"><i class="fas fa-spinner mr-1"></i>进行中</span>
+                                    <a href="/exam/{{ h.exam_id }}" class="text-xs text-orange-600 hover:text-orange-800"><i class="fas fa-play"></i> 继续</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-clipboard text-3xl mb-2"></i>
+                        <p class="text-sm">暂无考试记录</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Column: Learning Garden -->
+            <div>
+                <div class="col-panel">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="w-8 h-8 bg-green-100 text-green-700 rounded-lg flex items-center justify-center mr-2 text-sm"><i class="fas fa-book-open"></i></span>
+                        学习园地
+                    </h3>
+                    {% if blog_posts %}
+                    <div class="space-y-3">
+                        {% for post in blog_posts %}
+                        <div class="blog-card" onclick="window.open('/blog/{{ post.slug or post.id }}', '_blank')">
+                            <div class="flex items-start justify-between mb-1">
+                                <h4 class="text-sm font-bold text-gray-800">
+                                    {{ post.title }}
+                                    {% if post.is_pinned %}<span class="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded ml-1">置顶</span>{% endif %}
+                                </h4>
+                                <span class="text-xs text-gray-400 whitespace-nowrap ml-2">{{ post.created_at[:10] }}</span>
+                            </div>
+                            {% if post.tags %}
+                            <div class="mb-1">
+                                {% for tag in post.tags.split(',')[:3] %}
+                                <span class="inline-block bg-blue-50 text-blue-600 text-xs px-1.5 py-0.5 rounded mr-1">{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <p class="text-xs text-gray-500 mb-2">{{ post.summary or '' }}</p>
+                            <div class="flex items-center justify-between text-xs text-gray-400">
+                                <span><i class="fas fa-folder mr-1"></i>{{ post.category }}</span>
+                                <span><i class="fas fa-eye mr-1"></i>{{ post.view_count or 0 }} 阅读</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-book-open text-3xl mb-2"></i>
+                        <p class="text-sm">暂无文章</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center py-6 text-sm text-gray-400 mt-4">
+            张老师病理学职称考试模拟系统 v2.0
+        </footer>
+    </div>
+
+<script>
+
+
+    
+    // Back to Top
+    (function() {
+        var btn = document.getElementById('back-to-top');
+        if (!btn) return;
+        window.addEventListener('scroll', function() {
+            btn.classList.toggle('show', window.scrollY > 300);
+        });
+    })();
+
+    </script>
+
+
+    <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fas fa-arrow-up"></i></button>
+
+    
+    <!-- Ad Image Lightbox -->
+    <script>
+    </script>
+
+<script src="/static/js/pull_refresh.js"></script>
+<script src="/static/js/anti_copy.js"></script>
+</body>
+</html>
