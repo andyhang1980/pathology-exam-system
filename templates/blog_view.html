@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.title }} - 张老师病理学职称考试模拟系统</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; }
+        .blog-content { line-height: 1.8; }
+        .blog-content h1, .blog-content h2, .blog-content h3 { margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold; color: #1a202c; }
+        .blog-content h2 { font-size: 1.5em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
+        .blog-content h3 { font-size: 1.25em; }
+        .blog-content p { margin-bottom: 1em; color: #4a5568; }
+        .blog-content ul, .blog-content ol { margin-bottom: 1em; padding-left: 1.5em; }
+        .blog-content li { margin-bottom: 0.3em; color: #4a5568; }
+        .blog-content img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
+        .blog-content blockquote { border-left: 4px solid #3182ce; padding: 0.5em 1em; margin: 1em 0; background: #ebf8ff; border-radius: 0 8px 8px 0; }
+        .blog-content code { background: #f7fafc; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #e53e3e; }
+        .blog-content pre { background: #1a202c; color: #e2e8f0; padding: 1em; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
+        .blog-content pre code { background: transparent; color: inherit; padding: 0; }
+        .blog-content table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+        .blog-content th, .blog-content td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+        .blog-content th { background: #f7fafc; font-weight: 600; }
+    
+        @media (max-width: 768px) {
+            .blog-content { padding: 0 4px; font-size: 15px; }
+            .blog-content img { margin: 0.5em 0; }
+            nav .max-w-5xl { padding-left: 12px !important; padding-right: 12px !important; }
+        }
+        @media (max-width: 480px) {
+            .blog-content { font-size: 14px; line-height: 1.7; }
+            .blog-content h2 { font-size: 1.25em; }
+            .blog-content h3 { font-size: 1.1em; }
+        }
+    
+    
+    /* Ad image lightbox */
+
+    @media (max-width:768px) {
+    .back-to-top:hover { background:#2563eb; transform:translateY(-2px); }
+    .back-to-top.show { display:flex; }
+
+    
+    /* Mobile App Fullscreen */
+    @media (max-width: 768px) {
+        body { margin: 0 !important; padding: 0 !important; }
+        .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl { max-width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; margin: 0 !important; }
+        .welcome-banner { margin: 0 !important; border-radius: 0 !important; }
+        .col-panel { border-radius: 8px !important; }
+    }
+
+    /* Ad Section */
+    .ad-section { max-width:900px; margin:24px auto 16px; padding:0 8px; }
+    .ad-section-title { text-align:center; font-size:13px; color:#999; margin-bottom:12px; letter-spacing:1px; }
+    .ad-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+    .ad-grid img { width:100%; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,0.08); cursor:pointer; transition:transform 0.2s; }
+    .ad-grid img:hover { transform:scale(1.02); }
+    .ad-lightbox { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; }
+    .ad-lightbox.show { display:flex; animation:adLightboxIn 0.2s ease; }
+    .ad-lightbox img { max-width:92vw; max-height:90vh; border-radius:8px; box-shadow:0 4px 30px rgba(0,0,0,0.5); }
+    @keyframes adLightboxIn { from { opacity:0; } to { opacity:1; } }
+    @media (max-width:768px) {
+        .ad-grid { grid-template-columns:1fr; gap:10px; }
+        .ad-section { margin:16px auto 10px; }
+    }
+</style>
+</head>
+<body>
+
+    <!-- Header -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-blue-800 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-medical text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800">张老师病理学职称考试模拟系统</h1>
+                    <p class="text-xs text-gray-400">学习园地</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="/dashboard" class="text-sm text-gray-600 hover:text-blue-600 transition-colors">
+                    <i class="fas fa-arrow-left mr-1"></i>返回考生中心
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Article -->
+        <article class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+            {% if post.cover_image %}
+            <div class="w-full h-64 bg-cover bg-center" style="background-image:url('{{ post.cover_image }}');"></div>
+            {% endif %}
+            <div class="p-8">
+                <!-- Title -->
+                <h1 class="text-3xl font-bold text-gray-800 mb-4">{{ post.title }}</h1>
+                
+                <!-- Meta -->
+                <div class="flex items-center flex-wrap gap-4 text-sm text-gray-400 mb-6 pb-6 border-b">
+                    <span><i class="fas fa-user mr-1"></i>{{ post.author }}</span>
+                    <span><i class="fas fa-folder mr-1"></i>{{ post.category }}</span>
+                    <span><i class="fas fa-clock mr-1"></i>{{ post.created_at }}</span>
+                    <span><i class="fas fa-eye mr-1"></i>{{ post.view_count }} 次阅读</span>
+                </div>
+                
+                <!-- Tags -->
+                {% if post.tags %}
+                <div class="mb-6">
+                    {% for tag in post.tags.split(',') %}
+                    <span class="inline-block bg-blue-50 text-blue-600 text-xs px-3 py-1 rounded-full mr-2 mb-1">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Content -->
+                <div class="blog-content">
+                    {{ post.content | safe }}
+                </div>
+            </div>
+        </article>
+        
+        <!-- Back button -->
+        <div class="mt-6 text-center">
+            <a href="/dashboard" class="inline-flex items-center px-6 py-3 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>返回学习园地
+            </a>
+        </div>
+
+
+    {% if ads %}
+    <div class="ad-section">
+        <div class="ad-section-title">— 合作伙伴 —</div>
+        <div class="ad-grid">
+            {% for ad in ads %}
+            {% if ad.link_url %}
+            <a href="{{ ad.link_url }}" target="_blank" rel="noopener">
+                <img src="{{ ad.image_url }}" alt="{{ ad.title }}" loading="lazy">
+            </a>
+            {% else %}
+            <img src="{{ ad.image_url }}" alt="{{ ad.title }}" loading="lazy">
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ad Image Lightbox -->
+    <div class="ad-lightbox" id="ad-lightbox" onclick="this.classList.remove('show')">
+        <img id="ad-lightbox-img" src="" alt="放大图片">
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-sm text-gray-400">
+        张老师病理学职称考试模拟系统 v2.0
+    </footer>
+
+
+
+    <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fas fa-arrow-up"></i></button>
+
+    
+    <!-- Ad Image Lightbox -->
+    <script>
+    
+    // Ad lightbox
+    document.querySelectorAll('.ad-grid img').forEach(function(img) {
+        img.addEventListener('click', function() {
+            var lb = document.getElementById('ad-lightbox');
+            var lbImg = document.getElementById('ad-lightbox-img');
+            lbImg.src = this.src;
+            lb.classList.add('show');
+        });
+    });
+</script>
+
+<script src="/static/js/pull_refresh.js"></script>
+<script src="/static/js/anti_copy.js"></script>
+</body>
+</html>
